@@ -13,8 +13,8 @@ export const ALLOWED_COOKIE_DOMAINS = ['.google.com', 'google.com', 'notebooklm.
 export const BASE_URL = 'https://notebooklm.google.com';
 
 // API endpoints
-export const BATCHEXECUTE_URL = `${BASE_URL}/_/NotebookLmFrontendUi/data/batchexecute`;
-export const QUERY_STREAM_URL = `${BASE_URL}/_/NotebookLmFrontendUi/data/AssistantStreamService/GenerateFreeFormStreamed`;
+export const BATCHEXECUTE_URL = `${BASE_URL}/_/LabsTailwindUi/data/batchexecute`;
+export const QUERY_STREAM_URL = `${BASE_URL}/_/LabsTailwindUi/data/AssistantStreamService/GenerateFreeFormStreamed`;
 
 // Timeouts
 export const NAVIGATION_TIMEOUT = 30_000;

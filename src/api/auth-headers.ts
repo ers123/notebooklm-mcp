@@ -44,6 +44,7 @@ export class AuthHeaders {
       'Cookie': cookieHeader,
       'Origin': BASE_URL,
       'Referer': `${BASE_URL}/`,
+      'X-Same-Domain': '1',
       'User-Agent': USER_AGENT,
     };
 
