@@ -20,59 +20,66 @@ export class AuthManager {
     const { context, page } = await launchBrowser();
 
     try {
-      // Navigate directly to Google sign-in with NotebookLM as continue URL.
-      // This forces the login flow — the user MUST sign in before being
-      // redirected to NotebookLM. Avoids the issue where notebooklm.google.com
-      // loads a public page and waitForURL resolves without any login.
-      const loginUrl = `https://accounts.google.com/ServiceLogin?continue=${encodeURIComponent(BASE_URL)}`;
-      await page.goto(loginUrl);
+      // Navigate to NotebookLM — Google will redirect to sign-in if needed
+      await page.goto(BASE_URL);
 
-      logger.info('Waiting for user to complete Google sign-in...');
+      logger.info('Browser opened. Waiting for user to complete Google sign-in...');
       logger.info('Please sign in to your Google account in the browser window');
 
-      // Wait for redirect to NotebookLM — only happens AFTER successful Google login
-      // Timeout of 5 minutes to give user time to complete login
-      await page.waitForURL(/notebooklm\.google\.com/, { timeout: 5 * 60 * 1000 });
+      // Instead of relying on URL patterns (which can be fragile with Google's
+      // redirects), poll for critical auth cookies every 2 seconds.
+      // Google sets SID/SAPISID on .google.com after successful sign-in.
+      const CRITICAL_COOKIE_NAMES = ['SID', 'HSID', 'SSID', 'APISID', 'SAPISID',
+        '__Secure-1PSID', '__Secure-3PSID', '__Secure-1PAPISID', '__Secure-3PAPISID'];
+      const LOGIN_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+      const POLL_INTERVAL = 2000; // 2 seconds
+      const startTime = Date.now();
+      let allCookies: CookieData[] = [];
+      let foundCritical: string[] = [];
 
-      logger.info('Login detected — waiting for page to fully load...');
+      while (Date.now() - startTime < LOGIN_TIMEOUT) {
+        allCookies = await context.cookies();
 
-      // Wait for network to settle so all cookies are set across domains
-      if (page.waitForLoadState) {
-        await page.waitForLoadState('networkidle');
+        foundCritical = allCookies
+          .filter(c => CRITICAL_COOKIE_NAMES.includes(c.name))
+          .map(c => c.name);
+
+        if (foundCritical.length >= 2) {
+          // Found enough critical cookies — login is complete
+          logger.info(`Login detected! Found cookies: ${foundCritical.join(', ')}`);
+          break;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
       }
 
-      // Additional delay for cross-domain cookie propagation
-      // Google sets SID/HSID/SAPISID across .google.com during redirect chain
-      await new Promise(resolve => setTimeout(resolve, 5000));
-
-      logger.info('Capturing cookies...');
-
-      // Extract cookies
-      const allCookies = await context.cookies() as CookieData[];
-
-      // Diagnostic logging before filtering
-      const domains = [...new Set(allCookies.map(c => c.domain))];
-      logger.info(`Raw cookies captured: ${allCookies.length} from domains: ${domains.join(', ')}`);
-
-      const criticalNames = ['SID', 'HSID', 'SSID', 'APISID', 'SAPISID', '__Secure-1PSID', '__Secure-3PSID'];
-      const foundCritical = allCookies.filter(c => criticalNames.includes(c.name)).map(c => c.name);
-      if (foundCritical.length === 0) {
-        logger.error('FAILED: No critical auth cookies captured after login.');
-        logger.error(`All cookie names: ${allCookies.map(c => c.name).join(', ')}`);
-        logger.error(`All cookie domains: ${domains.join(', ')}`);
+      if (foundCritical.length < 2) {
+        const domains = [...new Set(allCookies.map(c => c.domain))];
+        const names = allCookies.map(c => c.name);
+        logger.error(`Login timeout. Cookies found: ${names.join(', ')}`);
+        logger.error(`Cookie domains: ${domains.join(', ')}`);
         throw new AuthError(
-          'Login appeared to succeed but no session cookies were captured. ' +
-          'Please ensure you fully completed the Google sign-in (not just loaded the page). ' +
-          'Try running setup_auth again.'
+          'Login timed out — no Google session cookies detected after 5 minutes. ' +
+          'Please ensure you complete the full Google sign-in in the browser window.'
         );
       }
-      logger.info(`Critical auth cookies found: ${foundCritical.join(', ')}`);
+
+      // Wait a bit more for any remaining cookies to propagate
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Final cookie capture
+      allCookies = await context.cookies();
+
+      const domains = [...new Set(allCookies.map(c => c.domain))];
+      logger.info(`Final capture: ${allCookies.length} cookies from domains: ${domains.join(', ')}`);
+      logger.info(`Critical cookies: ${foundCritical.join(', ')}`);
 
       // Filter and save
       await this.cookieStore.saveCookies(allCookies);
 
       logger.info('Authentication successful — cookies encrypted and stored');
     } catch (error) {
+      if (error instanceof AuthError) throw error;
       throw new AuthError(
         'Login failed or timed out. Please try again with setup_auth.',
         error instanceof Error ? error : undefined
