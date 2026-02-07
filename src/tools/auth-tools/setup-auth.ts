@@ -1,8 +1,16 @@
 import { withErrorHandling, toolResponse } from '../index.js';
 import { AuthManager } from '../../auth/auth-manager.js';
 import { BrowserLauncher } from '../../browser/browser-launcher.js';
-import { CookieStore } from '../../auth/cookie-store.js';
 import type { CookieData, ToolResponse } from '../../types.js';
+
+// Google domains whose cookies are needed for API authentication
+const COOKIE_URLS = [
+  'https://google.com',
+  'https://www.google.com',
+  'https://accounts.google.com',
+  'https://notebooklm.google.com',
+  'https://myaccount.google.com',
+];
 
 export function createSetupAuthHandler(authManager: AuthManager, browserLauncher: BrowserLauncher) {
   return withErrorHandling(async (_args: Record<string, unknown>): Promise<ToolResponse> => {
@@ -17,7 +25,8 @@ export function createSetupAuthHandler(authManager: AuthManager, browserLauncher
       return {
         context: {
           cookies: async () => {
-            const cookies = await context.cookies();
+            // Pass explicit URLs to capture cookies across all Google domains
+            const cookies = await context.cookies(COOKIE_URLS);
             return cookies.map(c => ({
               name: c.name,
               value: c.value,
@@ -35,6 +44,8 @@ export function createSetupAuthHandler(authManager: AuthManager, browserLauncher
           goto: (url: string) => page.goto(url).then(() => {}),
           waitForURL: (pattern: string | RegExp, options?: { timeout?: number }) =>
             page.waitForURL(pattern, options).then(() => {}),
+          waitForLoadState: (state: string) =>
+            page.waitForLoadState(state as 'load' | 'domcontentloaded' | 'networkidle').then(() => {}),
           url: () => page.url(),
         },
       };

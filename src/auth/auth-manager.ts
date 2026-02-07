@@ -14,7 +14,7 @@ export class AuthManager {
     this.stateValidator = new StateValidator();
   }
 
-  async login(launchBrowser: () => Promise<{ context: { cookies: () => Promise<CookieData[]>; close: () => Promise<void> }; page: { goto: (url: string) => Promise<void>; waitForURL: (pattern: string | RegExp, options?: { timeout?: number }) => Promise<void>; url: () => string } }>): Promise<void> {
+  async login(launchBrowser: () => Promise<{ context: { cookies: () => Promise<CookieData[]>; close: () => Promise<void> }; page: { goto: (url: string) => Promise<void>; waitForURL: (pattern: string | RegExp, options?: { timeout?: number }) => Promise<void>; waitForLoadState?: (state: string) => Promise<void>; url: () => string } }>): Promise<void> {
     logger.info('Starting manual login flow — opening browser for user authentication');
 
     const { context, page } = await launchBrowser();
@@ -30,10 +30,34 @@ export class AuthManager {
       // Timeout of 5 minutes to give user time to complete login
       await page.waitForURL(/notebooklm\.google\.com/, { timeout: 5 * 60 * 1000 });
 
-      logger.info('Login detected — capturing cookies');
+      logger.info('Login detected — waiting for page to fully load...');
+
+      // Wait for network to settle so all cookies are set across domains
+      if (page.waitForLoadState) {
+        await page.waitForLoadState('networkidle');
+      }
+
+      // Additional delay for cross-domain cookie propagation
+      // Google sets SID/HSID/SAPISID across .google.com during redirect chain
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      logger.info('Capturing cookies...');
 
       // Extract cookies
       const allCookies = await context.cookies() as CookieData[];
+
+      // Diagnostic logging before filtering
+      const domains = [...new Set(allCookies.map(c => c.domain))];
+      logger.info(`Raw cookies captured: ${allCookies.length} from domains: ${domains.join(', ')}`);
+
+      const criticalNames = ['SID', 'HSID', 'SSID', 'APISID', 'SAPISID', '__Secure-1PSID', '__Secure-3PSID'];
+      const foundCritical = allCookies.filter(c => criticalNames.includes(c.name)).map(c => c.name);
+      if (foundCritical.length === 0) {
+        logger.warn('WARNING: No critical auth cookies found. Authentication may fail.');
+        logger.warn(`All cookie names: ${allCookies.map(c => c.name).join(', ')}`);
+      } else {
+        logger.info(`Critical auth cookies found: ${foundCritical.join(', ')}`);
+      }
 
       // Filter and save
       await this.cookieStore.saveCookies(allCookies);
