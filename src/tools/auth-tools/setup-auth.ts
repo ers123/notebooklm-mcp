@@ -3,15 +3,6 @@ import { AuthManager } from '../../auth/auth-manager.js';
 import { BrowserLauncher } from '../../browser/browser-launcher.js';
 import type { CookieData, ToolResponse } from '../../types.js';
 
-// Google domains whose cookies are needed for API authentication
-const COOKIE_URLS = [
-  'https://google.com',
-  'https://www.google.com',
-  'https://accounts.google.com',
-  'https://notebooklm.google.com',
-  'https://myaccount.google.com',
-];
-
 export function createSetupAuthHandler(authManager: AuthManager, browserLauncher: BrowserLauncher) {
   return withErrorHandling(async (_args: Record<string, unknown>): Promise<ToolResponse> => {
     await authManager.login(async () => {
@@ -25,8 +16,11 @@ export function createSetupAuthHandler(authManager: AuthManager, browserLauncher
       return {
         context: {
           cookies: async () => {
-            // Pass explicit URLs to capture cookies across all Google domains
-            const cookies = await context.cookies(COOKIE_URLS);
+            // Call without arguments to get ALL cookies in the browser context.
+            // Passing URLs caused .google.com domain cookies (SID, SAPISID) to be
+            // missed due to Patchright/Playwright URL-to-domain matching issues.
+            // Filtering is done later in CookieStore.saveCookies() via isDomainAllowed().
+            const cookies = await context.cookies();
             return cookies.map(c => ({
               name: c.name,
               value: c.value,
