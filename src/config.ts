@@ -12,8 +12,14 @@ export const ALLOWED_DOMAINS = ['notebooklm.google.com'] as const;
 export const ALLOWED_COOKIE_DOMAINS = ['.google.com', 'notebooklm.google.com'] as const;
 export const BASE_URL = 'https://notebooklm.google.com';
 
+// API endpoints
+export const BATCHEXECUTE_URL = `${BASE_URL}/_/NotebookLmFrontendUi/data/batchexecute`;
+export const QUERY_STREAM_URL = `${BASE_URL}/_/NotebookLmFrontendUi/data/AssistantStreamService/GenerateFreeFormStreamed`;
+
+// Timeouts
 export const NAVIGATION_TIMEOUT = 30_000;
-export const QUERY_TIMEOUT = 60_000;
+export const QUERY_TIMEOUT = 120_000;
+export const RPC_TIMEOUT = 60_000;
 export const SESSION_IDLE_TIMEOUT = 15 * 60 * 1000;
 export const CLEANUP_INTERVAL = 5 * 60 * 1000;
 

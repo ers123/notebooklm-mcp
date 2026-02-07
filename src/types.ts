@@ -78,3 +78,66 @@ export interface ToolResponse {
   content: Array<{ type: 'text'; text: string }>;
   isError?: boolean;
 }
+
+// --- v2 API types ---
+
+export interface NotebookInfo {
+  id: string;
+  title: string;
+  description?: string;
+  sourceCount: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SourceInfo {
+  id: string;
+  title: string;
+  type: string;
+  url?: string;
+  driveId?: string;
+  addedAt?: string;
+  syncStatus?: 'synced' | 'pending' | 'error';
+}
+
+export interface QueryStreamResult {
+  answer: string;
+  warnings: string[];
+  sources: string[];
+}
+
+export interface ResearchTask {
+  id: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  mode: 'fast' | 'deep';
+  query?: string;
+  progress?: number;
+  resultId?: string;
+}
+
+export interface StudioArtifact {
+  id: string;
+  type: string;
+  status: 'pending' | 'generating' | 'ready' | 'failed';
+  title?: string;
+  url?: string;
+  createdAt?: string;
+}
+
+export interface NotebookDescribeResult {
+  summary: string;
+  topics: string[];
+  sourceCount: number;
+}
+
+export interface ChatConfig {
+  goal?: string | null;
+  responseLength?: string;
+  customPrompt?: string;
+}
+
+export interface DriveSourceInfo extends SourceInfo {
+  driveFileId: string;
+  syncedAt?: string;
+  needsSync: boolean;
+}

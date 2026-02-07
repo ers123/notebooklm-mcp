@@ -1,7 +1,7 @@
 {
   "name": "notebooklm-mcp",
-  "version": "1.0.0",
-  "description": "Secure MCP server for Google NotebookLM",
+  "version": "2.0.0",
+  "description": "Secure MCP server for Google NotebookLM — HTTP API direct access",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
@@ -13,8 +13,10 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "patchright": "^1.52.0",
     "zod": "^3.24.2"
+  },
+  "optionalDependencies": {
+    "patchright": "^1.52.0"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",

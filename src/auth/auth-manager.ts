@@ -71,4 +71,8 @@ export class AuthManager {
   async getCookies(): Promise<CookieData[]> {
     return this.cookieStore.loadCookies();
   }
+
+  getCookieStore(): CookieStore {
+    return this.cookieStore;
+  }
 }

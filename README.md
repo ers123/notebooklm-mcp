@@ -1,12 +1,10 @@
 # notebooklm-mcp
 
-A secure MCP (Model Context Protocol) server for Google NotebookLM. Enables AI assistants to interact with NotebookLM notebooks — ask questions, manage notebooks, generate audio overviews, and more.
+A secure MCP (Model Context Protocol) server for Google NotebookLM. Enables AI assistants to interact with NotebookLM notebooks — manage notebooks, query sources, create audio/video/reports, run research, and more.
 
-Built as a security-hardened alternative to existing NotebookLM integrations.
+**v2** uses direct HTTP API calls (no browser automation at runtime), making it significantly faster than v1 while maintaining all security hardening.
 
 ## Security
-
-This server was designed to fix critical security issues found in existing NotebookLM MCP implementations:
 
 | Issue in existing MCPs | Our fix |
 |---|---|
@@ -20,26 +18,63 @@ This server was designed to fix critical security issues found in existing Noteb
 | All cookies stored | Only `.google.com` + `notebooklm.google.com` persisted |
 | `exec()` for shell commands | `execFile()` to prevent shell injection |
 
-## Tools (16)
+## Tools (32)
 
+### Authentication (3)
 | Tool | Description |
 |---|---|
-| `ask_question` | Query notebook sources with source-grounded answer |
-| `ask_followup` | Continue conversation in existing session |
-| `list_notebooks` | List all notebooks in local library |
-| `add_notebook` | Add notebook URL with name/tags/description |
-| `remove_notebook` | Remove notebook from library |
-| `select_notebook` | Set active notebook |
-| `search_notebooks` | Search by name/tags/description |
-| `get_notebook` | Get notebook details |
-| `generate_audio` | Create audio overview (paid feature) |
-| `generate_summary` | Get notebook summary |
-| `describe_sources` | List sources with metadata |
-| `setup_auth` | Interactive login (headful browser) |
+| `setup_auth` | Interactive login (headful browser, one-time setup) |
 | `check_auth` | Validate auth status |
 | `clear_auth` | Clear all stored auth data |
-| `list_sessions` | List active browser sessions |
-| `close_session` | Close a specific session |
+
+### Notebook Management (7)
+| Tool | Description |
+|---|---|
+| `notebook_list` | List all notebooks in your account |
+| `notebook_create` | Create a new notebook |
+| `notebook_get` | Get notebook details including sources |
+| `notebook_describe` | Get AI-generated summary and suggested topics |
+| `notebook_rename` | Rename a notebook |
+| `notebook_delete` | Delete a notebook (requires confirm=true) |
+| `chat_configure` | Configure AI chat settings (goal, response length, custom prompt) |
+
+### Source Management (8)
+| Tool | Description |
+|---|---|
+| `source_add_url` | Add a URL or YouTube link as source |
+| `source_add_text` | Add text content as source |
+| `source_add_drive` | Add a Google Drive document as source |
+| `source_describe` | Get AI-generated source summary |
+| `source_get_content` | Get original text content of a source |
+| `source_list_drive` | List Drive sources with sync status |
+| `source_sync_drive` | Sync a Drive source to latest version |
+| `source_delete` | Delete a source (requires confirm=true) |
+
+### AI Query (1)
+| Tool | Description |
+|---|---|
+| `notebook_query` | Ask questions about notebook sources (supports follow-ups) |
+
+### Research (3)
+| Tool | Description |
+|---|---|
+| `research_start` | Start web research (fast or deep mode) |
+| `research_status` | Check research task progress |
+| `research_import` | Import research results as notebook source |
+
+### Studio Content (10)
+| Tool | Description |
+|---|---|
+| `audio_create` | Generate audio podcast (format, length, language, focus) |
+| `video_create` | Generate video overview (visual style, language, focus) |
+| `report_create` | Generate report (briefing doc, study guide, FAQ, timeline, blog) |
+| `flashcards_create` | Generate flashcards (difficulty) |
+| `quiz_create` | Generate quiz (question count, difficulty) |
+| `infographic_create` | Generate infographic (orientation, detail level) |
+| `slide_deck_create` | Generate slide deck (format, length) |
+| `data_table_create` | Generate data table |
+| `studio_status` | Check generation status of any studio artifact |
+| `studio_delete` | Delete a studio artifact (requires confirm=true) |
 
 ## Requirements
 
@@ -54,22 +89,21 @@ git clone https://github.com/ers123/notebooklm-mcp.git
 cd notebooklm-mcp
 npm install
 npm run build
-npx patchright install chromium
+npx patchright install chromium   # needed for one-time setup_auth only
 ```
 
 ## Configuration
 
-### Google Antigravity IDE (Gemini)
+### Claude Code
 
-Add to `~/.gemini/antigravity/mcp_config.json`:
+Add to `~/.claude/mcp_config.json`:
 
 ```json
 {
   "mcpServers": {
     "notebooklm": {
       "command": "node",
-      "args": ["/path/to/notebooklm-mcp/dist/index.js"],
-      "env": {}
+      "args": ["/path/to/notebooklm-mcp/dist/index.js"]
     }
   }
 }
@@ -101,23 +135,36 @@ node /path/to/notebooklm-mcp/dist/index.js
 ### First-time setup
 
 1. Connect the MCP server to your AI assistant
-2. Run the `setup_auth` tool — a browser window opens
+2. Run `setup_auth` — a browser window opens
 3. Sign in to your Google account manually
 4. The browser closes automatically after successful login
 5. Cookies are encrypted and stored securely
+6. All subsequent API calls use HTTP directly (no browser needed)
 
-### Querying notebooks
-
-```
-Use ask_question with notebookId "abc123" and question "What are the key findings?"
-```
-
-### Managing notebooks
+### Example workflows
 
 ```
-Use add_notebook with url "https://notebooklm.google.com/notebook/abc123" and name "Research Notes"
-Use list_notebooks to see all saved notebooks
-Use search_notebooks with query "research" to find notebooks
+# List your notebooks
+Use notebook_list
+
+# Create a notebook and add sources
+Use notebook_create with title "AI Research"
+Use source_add_url with notebookId "..." and url "https://example.com/paper.pdf"
+Use source_add_text with notebookId "..." and title "Notes" and content "..."
+
+# Query your notebook
+Use notebook_query with notebookId "..." and question "What are the key findings?"
+Use notebook_query with notebookId "..." and question "Tell me more" and followUp true
+
+# Generate content
+Use audio_create with notebookId "..." and format "conversation" and length "medium"
+Use report_create with notebookId "..." and reportFormat "briefing_doc"
+Use studio_status with notebookId "..." and artifactId "..." to check progress
+
+# Run web research
+Use research_start with notebookId "..." and query "latest AI developments" and mode "deep"
+Use research_status with notebookId "..." and taskId "..." to check progress
+Use research_import with notebookId "..." and taskId "..." to add results as source
 ```
 
 ## Architecture
@@ -125,20 +172,25 @@ Use search_notebooks with query "research" to find notebooks
 ```
 src/
 ├── index.ts                    # Entry point + stdio transport
-├── server.ts                   # MCP server + tool registration
-├── config.ts                   # Constants, paths, timeouts
+├── server.ts                   # 32 MCP tools registered
+├── config.ts                   # Constants, API endpoints, timeouts
 ├── types.ts                    # Shared interfaces
 ├── errors.ts                   # Error class hierarchy
+├── api/                        # HTTP API layer (v2 core)
+│   ├── rpc-client.ts           # batchexecute RPC client
+│   ├── query-client.ts         # Streaming query client
+│   ├── response-parser.ts      # Anti-XSSI removal + chunk parsing
+│   └── constants.ts            # RPC IDs + code mappings
 ├── security/                   # Keychain, AES-256-GCM, file perms, URL validation, sanitizer
 ├── auth/                       # Manual login flow, encrypted cookie store
-├── browser/                    # Patchright launcher, context management, page helpers
-├── session/                    # Session pool (max 5, 15min timeout)
-└── tools/                      # 16 MCP tool handlers
-    ├── query/                  # ask_question, ask_followup
-    ├── library/                # list/add/remove/select/search/get notebooks
-    ├── content/                # generate_audio, generate_summary, describe_sources
-    ├── auth-tools/             # setup/check/clear auth
-    └── session-tools/          # list/close sessions
+├── browser/                    # Patchright launcher (setup_auth only)
+└── tools/                      # 32 MCP tool handlers
+    ├── notebook/               # list, create, get, describe, rename, delete, chat-configure
+    ├── source/                 # add-url, add-text, add-drive, describe, get-content, list-drive, sync-drive, delete
+    ├── query/                  # notebook-query (AI Q&A with follow-ups)
+    ├── research/               # start, status, import
+    ├── studio/                 # audio, video, report, flashcards, quiz, infographic, slide-deck, data-table, status, delete
+    └── auth-tools/             # setup, check, clear auth
 ```
 
 ## Development
@@ -152,11 +204,13 @@ npm run test:watch   # Run tests in watch mode
 
 ## Dependencies
 
-Only 3 runtime dependencies:
+Only 2 runtime dependencies:
 
 - `@modelcontextprotocol/sdk` — MCP server framework
-- `patchright` — Browser automation (Playwright fork)
 - `zod` — Input validation
+
+Optional:
+- `patchright` — Browser automation (only needed for `setup_auth`)
 
 No native modules. Encryption via Node.js built-in `crypto`. Keychain via `child_process.execFile`.
 
