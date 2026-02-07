@@ -19,12 +19,15 @@ export function createNotebookListHandler(rpcClient: RpcClient) {
     const notebooks: NotebookEntry[] = [];
 
     if (Array.isArray(result)) {
-      for (const entry of result) {
-        if (Array.isArray(entry)) {
+      // result[0] is the array of notebooks
+      const notebookList = Array.isArray(result[0]) ? result[0] : result;
+
+      for (const entry of notebookList) {
+        if (Array.isArray(entry) && entry.length >= 3) {
           notebooks.push({
-            id: String(entry[0] ?? ''),
-            title: String(entry[1] ?? 'Untitled'),
-            sourceCount: typeof entry[12] === 'number' ? entry[12] : 0,
+            id: String(entry[2] ?? ''),
+            title: String(entry[0] ?? 'Untitled'),
+            sourceCount: Array.isArray(entry[1]) ? entry[1].length : 0,
           });
         }
       }

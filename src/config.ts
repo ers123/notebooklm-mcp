@@ -14,7 +14,7 @@ export const BASE_URL = 'https://notebooklm.google.com';
 
 // API endpoints
 export const BATCHEXECUTE_URL = `${BASE_URL}/_/LabsTailwindUi/data/batchexecute`;
-export const QUERY_STREAM_URL = `${BASE_URL}/_/LabsTailwindUi/data/AssistantStreamService/GenerateFreeFormStreamed`;
+export const QUERY_STREAM_URL = `${BASE_URL}/_/LabsTailwindUi/data/google.internal.labs.tailwind.orchestration.v1.LabsTailwindOrchestrationService/GenerateFreeFormStreamed`;
 
 // Timeouts
 export const NAVIGATION_TIMEOUT = 30_000;

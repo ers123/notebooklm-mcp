@@ -35,7 +35,16 @@ export class QueryClient {
 
     const requestPayload = this.buildQueryPayload(notebookId, question, history);
 
-    const url = `${QUERY_STREAM_URL}?bl=boq_assistant-bard-web-server_20250203.16_p0&_reqid=${reqid}&rt=c`;
+    const sessionId = this.authHeaders.getSessionId();
+    const queryParams = new URLSearchParams({
+      'bl': 'boq_labs-tailwind-frontend_20260108.06_p0',
+      '_reqid': String(reqid),
+      'rt': 'c',
+    });
+    if (sessionId) {
+      queryParams.set('f.sid', sessionId);
+    }
+    const url = `${QUERY_STREAM_URL}?${queryParams.toString()}`;
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), QUERY_TIMEOUT);
