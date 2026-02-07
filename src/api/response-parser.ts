@@ -15,49 +15,84 @@ export function stripAntiXssi(text: string): string {
 
 /**
  * Parse a chunked batchexecute response into individual JSON chunks.
- * Line-based parser: lines that parse as integers are byte counts (skipped),
- * lines that parse as JSON arrays are data chunks.
+ *
+ * Google's batchexecute format: each chunk starts with a byte count on its own
+ * line, followed by JSON data that may span MULTIPLE lines. We use the byte
+ * count to slice the correct number of bytes from the remaining text.
  */
 export function parseChunkedResponse(text: string): unknown[][] {
   const stripped = stripAntiXssi(text);
-  const lines = stripped.split('\n');
   const chunks: unknown[][] = [];
-  let i = 0;
+  const encoder = new TextEncoder();
+  let pos = 0;
 
-  while (i < lines.length) {
-    const line = lines[i].trim();
-    if (!line) {
-      i++;
-      continue;
-    }
+  while (pos < stripped.length) {
+    // Skip whitespace
+    while (pos < stripped.length && /\s/.test(stripped[pos])) pos++;
+    if (pos >= stripped.length) break;
 
-    // Check if line is a byte count (integer)
-    const byteCount = parseInt(line, 10);
-    if (!isNaN(byteCount) && String(byteCount) === line) {
-      // Next line should be JSON data
-      i++;
-      if (i < lines.length) {
-        try {
-          const data = JSON.parse(lines[i]);
-          if (Array.isArray(data)) {
-            chunks.push(data);
-          }
-        } catch {
-          // Skip malformed JSON
-        }
-      }
-      i++;
-    } else {
-      // Try parsing line directly as JSON
+    // Read byte count line (ends at newline)
+    const newlineIdx = stripped.indexOf('\n', pos);
+    if (newlineIdx === -1) break;
+
+    const byteCountStr = stripped.slice(pos, newlineIdx).trim();
+    const byteCount = parseInt(byteCountStr, 10);
+    if (isNaN(byteCount) || byteCount <= 0) {
+      // Not a byte count — try to parse the line itself as JSON
       try {
-        const data = JSON.parse(line);
+        const data = JSON.parse(byteCountStr);
         if (Array.isArray(data)) {
           chunks.push(data);
         }
       } catch {
-        // Skip non-JSON lines
+        // Skip
       }
-      i++;
+      pos = newlineIdx + 1;
+      continue;
+    }
+
+    // Move past the byte count line
+    pos = newlineIdx + 1;
+
+    // Read exactly byteCount bytes of UTF-8 data.
+    // Since JS strings are UTF-16, we accumulate characters until
+    // we've consumed byteCount UTF-8 bytes.
+    let bytesRead = 0;
+    let charEnd = pos;
+    while (charEnd < stripped.length && bytesRead < byteCount) {
+      const charCode = stripped.codePointAt(charEnd) ?? 0;
+      // UTF-8 byte length of this code point
+      if (charCode <= 0x7F) bytesRead += 1;
+      else if (charCode <= 0x7FF) bytesRead += 2;
+      else if (charCode <= 0xFFFF) bytesRead += 3;
+      else bytesRead += 4;
+      charEnd += charCode > 0xFFFF ? 2 : 1; // surrogate pair for code points > 0xFFFF
+    }
+
+    const chunkText = stripped.slice(pos, charEnd);
+    pos = charEnd;
+
+    try {
+      const parsed = JSON.parse(chunkText);
+      if (Array.isArray(parsed)) {
+        chunks.push(parsed);
+      }
+    } catch {
+      // Fallback: try accumulating lines until JSON.parse succeeds
+      const lines = chunkText.split('\n');
+      let accumulated = '';
+      for (const line of lines) {
+        accumulated += (accumulated ? '\n' : '') + line;
+        try {
+          const data = JSON.parse(accumulated);
+          if (Array.isArray(data)) {
+            chunks.push(data);
+            break;
+          }
+        } catch {
+          // Keep accumulating
+        }
+      }
     }
   }
 
@@ -69,6 +104,17 @@ export function parseChunkedResponse(text: string): unknown[][] {
  * Looks for wrb.fr envelope containing the specified RPC ID.
  */
 export function extractRpcResult(chunks: unknown[][], rpcId: string): unknown {
+  // Log all found rpcIds for debugging
+  const foundIds: string[] = [];
+  for (const chunk of chunks) {
+    for (const envelope of chunk) {
+      if (Array.isArray(envelope) && envelope[0] === 'wrb.fr' && typeof envelope[1] === 'string') {
+        foundIds.push(envelope[1]);
+      }
+    }
+  }
+  logger.info(`extractRpcResult: looking for "${rpcId}", found envelopes: [${foundIds.join(', ')}]`);
+
   for (const chunk of chunks) {
     // Each chunk is an array of envelopes
     for (const envelope of chunk) {
