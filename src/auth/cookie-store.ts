@@ -21,16 +21,19 @@ export class CookieStore {
 
   async saveCookies(cookies: CookieData[]): Promise<void> {
     // Filter to allowed domains only
-    const filtered = cookies.filter(cookie =>
-      ALLOWED_COOKIE_DOMAINS.some(domain =>
-        cookie.domain === domain || cookie.domain.endsWith(domain)
-      )
-    );
+    const filtered = cookies.filter(cookie => this.isDomainAllowed(cookie.domain));
 
     if (filtered.length === 0) {
       logger.warn('No cookies matched allowed domains, nothing saved');
+      logger.warn(`Cookie domains seen: ${[...new Set(cookies.map(c => c.domain))].join(', ')}`);
       return;
     }
+
+    // Log key cookie names for diagnostics
+    const keyNames = filtered.map(c => c.name).filter(n =>
+      ['SID', 'HSID', 'SSID', 'APISID', 'SAPISID', '__Secure-1PSID', '__Secure-3PSID', '__Secure-1PAPISID', '__Secure-3PAPISID'].includes(n)
+    );
+    logger.info(`Key cookies captured: ${keyNames.join(', ') || 'NONE — auth may fail'}`);
 
     const key = await this.getOrCreateKey();
     const plaintext = JSON.stringify(filtered);
@@ -58,11 +61,7 @@ export class CookieStore {
     const cookies: CookieData[] = JSON.parse(plaintext);
 
     // Re-validate domains on load
-    return cookies.filter(cookie =>
-      ALLOWED_COOKIE_DOMAINS.some(domain =>
-        cookie.domain === domain || cookie.domain.endsWith(domain)
-      )
-    );
+    return cookies.filter(cookie => this.isDomainAllowed(cookie.domain));
   }
 
   async clearCookies(): Promise<void> {
@@ -78,5 +77,17 @@ export class CookieStore {
 
   async hasCookies(): Promise<boolean> {
     return existsSync(COOKIE_FILE);
+  }
+
+  /**
+   * Check if a cookie domain is in the allowed list.
+   * Handles both dotted (.google.com) and bare (google.com) domains.
+   */
+  private isDomainAllowed(cookieDomain: string): boolean {
+    const normalized = cookieDomain.startsWith('.') ? cookieDomain : `.${cookieDomain}`;
+    return ALLOWED_COOKIE_DOMAINS.some(allowed => {
+      const normalizedAllowed = allowed.startsWith('.') ? allowed : `.${allowed}`;
+      return normalized === normalizedAllowed || normalized.endsWith(normalizedAllowed);
+    });
   }
 }

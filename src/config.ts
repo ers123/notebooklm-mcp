@@ -9,7 +9,7 @@ export const KEYCHAIN_SERVICE = 'notebooklm-mcp';
 export const KEYCHAIN_ACCOUNT = 'encryption-key';
 
 export const ALLOWED_DOMAINS = ['notebooklm.google.com'] as const;
-export const ALLOWED_COOKIE_DOMAINS = ['.google.com', 'notebooklm.google.com'] as const;
+export const ALLOWED_COOKIE_DOMAINS = ['.google.com', 'google.com', 'notebooklm.google.com'] as const;
 export const BASE_URL = 'https://notebooklm.google.com';
 
 // API endpoints
