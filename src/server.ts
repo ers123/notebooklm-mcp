@@ -114,7 +114,7 @@ export function createServer(): ServerComponents {
   const sourceListDrive = createSourceListDriveHandler(rpcClient);
   const sourceSyncDrive = createSourceSyncDriveHandler(rpcClient);
   const sourceDelete = createSourceDeleteHandler(rpcClient);
-  const notebookQuery = createNotebookQueryHandler(queryClient);
+  const notebookQuery = createNotebookQueryHandler(queryClient, rpcClient);
   const researchStart = createResearchStartHandler(rpcClient);
   const researchStatus = createResearchStatusHandler(rpcClient);
   const researchImport = createResearchImportHandler(rpcClient);
