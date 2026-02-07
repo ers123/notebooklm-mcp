@@ -17,82 +17,63 @@ export function stripAntiXssi(text: string): string {
  * Parse a chunked batchexecute response into individual JSON chunks.
  *
  * Google's batchexecute format: each chunk starts with a byte count on its own
- * line, followed by JSON data that may span MULTIPLE lines. We use the byte
- * count to slice the correct number of bytes from the remaining text.
+ * line, followed by JSON data. For small responses the JSON fits on one line;
+ * for large responses (notebook details, etc.) the JSON can span multiple lines.
+ *
+ * Strategy: when we see a byte count, try parsing the next line as JSON.
+ * If that fails, keep accumulating subsequent lines until JSON.parse succeeds.
  */
 export function parseChunkedResponse(text: string): unknown[][] {
   const stripped = stripAntiXssi(text);
+  const lines = stripped.split('\n');
   const chunks: unknown[][] = [];
-  const encoder = new TextEncoder();
-  let pos = 0;
+  let i = 0;
 
-  while (pos < stripped.length) {
-    // Skip whitespace
-    while (pos < stripped.length && /\s/.test(stripped[pos])) pos++;
-    if (pos >= stripped.length) break;
-
-    // Read byte count line (ends at newline)
-    const newlineIdx = stripped.indexOf('\n', pos);
-    if (newlineIdx === -1) break;
-
-    const byteCountStr = stripped.slice(pos, newlineIdx).trim();
-    const byteCount = parseInt(byteCountStr, 10);
-    if (isNaN(byteCount) || byteCount <= 0) {
-      // Not a byte count — try to parse the line itself as JSON
-      try {
-        const data = JSON.parse(byteCountStr);
-        if (Array.isArray(data)) {
-          chunks.push(data);
-        }
-      } catch {
-        // Skip
-      }
-      pos = newlineIdx + 1;
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    if (!line) {
+      i++;
       continue;
     }
 
-    // Move past the byte count line
-    pos = newlineIdx + 1;
-
-    // Read exactly byteCount bytes of UTF-8 data.
-    // Since JS strings are UTF-16, we accumulate characters until
-    // we've consumed byteCount UTF-8 bytes.
-    let bytesRead = 0;
-    let charEnd = pos;
-    while (charEnd < stripped.length && bytesRead < byteCount) {
-      const charCode = stripped.codePointAt(charEnd) ?? 0;
-      // UTF-8 byte length of this code point
-      if (charCode <= 0x7F) bytesRead += 1;
-      else if (charCode <= 0x7FF) bytesRead += 2;
-      else if (charCode <= 0xFFFF) bytesRead += 3;
-      else bytesRead += 4;
-      charEnd += charCode > 0xFFFF ? 2 : 1; // surrogate pair for code points > 0xFFFF
-    }
-
-    const chunkText = stripped.slice(pos, charEnd);
-    pos = charEnd;
-
-    try {
-      const parsed = JSON.parse(chunkText);
-      if (Array.isArray(parsed)) {
-        chunks.push(parsed);
-      }
-    } catch {
-      // Fallback: try accumulating lines until JSON.parse succeeds
-      const lines = chunkText.split('\n');
+    // Check if line is a byte count (integer)
+    const byteCount = parseInt(line, 10);
+    if (!isNaN(byteCount) && String(byteCount) === line && byteCount > 0) {
+      // Byte count line — accumulate following lines until JSON.parse succeeds
+      i++;
       let accumulated = '';
-      for (const line of lines) {
-        accumulated += (accumulated ? '\n' : '') + line;
+      let found = false;
+
+      while (i < lines.length) {
+        accumulated += (accumulated ? '\n' : '') + lines[i];
+        i++;
+
         try {
           const data = JSON.parse(accumulated);
           if (Array.isArray(data)) {
             chunks.push(data);
-            break;
           }
+          found = true;
+          break;
         } catch {
-          // Keep accumulating
+          // JSON incomplete — keep accumulating more lines
         }
       }
+
+      if (!found && accumulated.trim()) {
+        logger.warn(`Failed to parse chunk after byte count ${byteCount}, accumulated ${accumulated.length} chars`);
+      }
+    } else {
+      // Not a byte count — try parsing line directly as JSON
+      try {
+        const data = JSON.parse(line);
+        if (Array.isArray(data)) {
+          chunks.push(data);
+        }
+      } catch {
+        // Skip non-JSON lines
+      }
+      i++;
     }
   }
 
