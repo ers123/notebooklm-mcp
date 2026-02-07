@@ -16,6 +16,51 @@ export function createNotebookGetHandler(rpcClient: RpcClient) {
 
     const result = await rpcClient.callRpc(RPC_IDS.NOTEBOOK_GET, [null, validated.notebookId]);
 
+    // DEBUG: Include raw result info in response for troubleshooting
+    const debugInfo: Record<string, unknown> = {
+      resultType: result === null ? 'null' : typeof result,
+      isArray: Array.isArray(result),
+    };
+
+    if (result === null || result === undefined) {
+      debugInfo.note = 'RPC returned null — wrb.fr envelope may not match rpcId';
+      return toolJsonResponse({
+        id: validated.notebookId,
+        title: 'Untitled',
+        sources: [],
+        sourceCount: 0,
+        _debug: debugInfo,
+      });
+    }
+
+    if (Array.isArray(result)) {
+      debugInfo.arrayLength = result.length;
+      // Show structure of first few elements
+      for (let i = 0; i < Math.min(result.length, 5); i++) {
+        const elem = result[i];
+        if (Array.isArray(elem)) {
+          debugInfo[`[${i}]`] = `array(${elem.length})`;
+          // Show first 3 sub-elements
+          for (let j = 0; j < Math.min(elem.length, 3); j++) {
+            const sub = elem[j];
+            if (typeof sub === 'string') {
+              debugInfo[`[${i}][${j}]`] = sub.slice(0, 100);
+            } else if (Array.isArray(sub)) {
+              debugInfo[`[${i}][${j}]`] = `array(${sub.length})`;
+            } else {
+              debugInfo[`[${i}][${j}]`] = String(sub).slice(0, 50);
+            }
+          }
+        } else if (typeof elem === 'string') {
+          debugInfo[`[${i}]`] = elem.slice(0, 100);
+        } else {
+          debugInfo[`[${i}]`] = `${typeof elem}: ${String(elem).slice(0, 50)}`;
+        }
+      }
+    } else {
+      debugInfo.rawPreview = JSON.stringify(result).slice(0, 300);
+    }
+
     let notebookId = validated.notebookId;
     let title = 'Untitled';
     const sources: SourceEntry[] = [];
@@ -32,7 +77,6 @@ export function createNotebookGetHandler(rpcClient: RpcClient) {
         if (Array.isArray(sourcesArray)) {
           for (const source of sourcesArray) {
             if (Array.isArray(source)) {
-              // Source structure: [[source_id], title_or_metadata, ...]
               let sourceId = '';
               let sourceTitle = 'Untitled source';
 
@@ -42,7 +86,6 @@ export function createNotebookGetHandler(rpcClient: RpcClient) {
                 sourceId = source[0];
               }
 
-              // Title might be at position 1 or nested
               if (typeof source[1] === 'string') {
                 sourceTitle = source[1];
               } else if (typeof source[2] === 'string') {
@@ -55,13 +98,6 @@ export function createNotebookGetHandler(rpcClient: RpcClient) {
             }
           }
         }
-
-        logger.info(`notebook_get: "${title}" with ${sources.length} sources`);
-      } else {
-        // Log structure for debugging
-        logger.warn(`notebook_get: unexpected structure at result[0]: ${typeof notebookInfo}`);
-        const preview = JSON.stringify(result).slice(0, 500);
-        logger.warn(`notebook_get raw preview: ${preview}`);
       }
     }
 
@@ -70,6 +106,7 @@ export function createNotebookGetHandler(rpcClient: RpcClient) {
       title,
       sources,
       sourceCount: sources.length,
+      _debug: debugInfo,
     });
   });
 }
