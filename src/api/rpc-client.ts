@@ -1,7 +1,7 @@
 import { CookieStore } from '../auth/cookie-store.js';
 import { BATCHEXECUTE_URL, RPC_TIMEOUT } from '../config.js';
 import { AuthError, TimeoutError, ValidationError } from '../errors.js';
-import { parseRpcResponse } from './response-parser.js';
+import { parseRpcResponse, getChunkDebugInfo } from './response-parser.js';
 import { AuthHeaders } from './auth-headers.js';
 import { logger } from '../utils/logger.js';
 
@@ -116,6 +116,49 @@ export class RpcClient {
     const paramsJson = JSON.stringify(params);
     const envelope = JSON.stringify([[[rpcId, paramsJson, null, 'generic']]]);
     return `f.req=${encodeURIComponent(envelope)}&at=${encodeURIComponent(csrfToken)}&`;
+  }
+
+  /**
+   * Call RPC and return both result and debug info about the response.
+   * Use this for troubleshooting when callRpc returns unexpected results.
+   */
+  async callRpcWithDebug(
+    rpcId: string,
+    params: unknown[],
+    sourcePath?: string,
+  ): Promise<{ result: unknown; debug: Record<string, unknown> }> {
+    const csrf = await this.authHeaders.getCsrfToken();
+    const sessionId = this.authHeaders.getSessionId();
+    const headers = await this.authHeaders.getHeaders();
+    const body = this.buildRequestBody(rpcId, params, csrf);
+    const url = this.buildUrl(rpcId, sourcePath ?? '/', sessionId);
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), RPC_TIMEOUT);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body,
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+
+      const text = await response.text();
+      const debugInfo = getChunkDebugInfo(text);
+      const result = parseRpcResponse(text, rpcId);
+
+      return {
+        result,
+        debug: {
+          httpStatus: response.status,
+          ...debugInfo,
+        },
+      };
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   /**

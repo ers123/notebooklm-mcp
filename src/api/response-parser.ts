@@ -130,6 +130,39 @@ export function extractRpcResult(chunks: unknown[][], rpcId: string): unknown {
 }
 
 /**
+ * Get debug info from parsed chunks — found rpcIds, chunk count, etc.
+ */
+export function getChunkDebugInfo(responseText: string): {
+  chunkCount: number;
+  foundRpcIds: string[];
+  responseLength: number;
+  firstChunkPreview: string;
+} {
+  const chunks = parseChunkedResponse(responseText);
+  const foundRpcIds: string[] = [];
+
+  for (const chunk of chunks) {
+    for (const envelope of chunk) {
+      if (Array.isArray(envelope) && envelope[0] === 'wrb.fr' && typeof envelope[1] === 'string') {
+        foundRpcIds.push(envelope[1]);
+      }
+    }
+  }
+
+  let firstChunkPreview = '';
+  if (chunks.length > 0) {
+    firstChunkPreview = JSON.stringify(chunks[0]).slice(0, 300);
+  }
+
+  return {
+    chunkCount: chunks.length,
+    foundRpcIds,
+    responseLength: responseText.length,
+    firstChunkPreview,
+  };
+}
+
+/**
  * Parse a batchexecute response and extract the result for a specific RPC.
  * Combines stripAntiXssi + parseChunkedResponse + extractRpcResult.
  */
