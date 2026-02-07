@@ -66,6 +66,8 @@ export class RpcClient {
           }
 
           const text = await response.text();
+          logger.info(`RPC ${rpcId} response: ${text.length} bytes, status ${response.status}`);
+          logger.info(`RPC ${rpcId} preview: ${text.slice(0, 200)}`);
           return parseRpcResponse(text, rpcId);
         } finally {
           clearTimeout(timer);

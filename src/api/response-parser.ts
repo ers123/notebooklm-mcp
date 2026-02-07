@@ -1,4 +1,5 @@
-import { ValidationError } from '../errors.js';
+import { AuthError, ValidationError } from '../errors.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Strip the anti-XSSI prefix from Google API responses.
@@ -14,40 +15,49 @@ export function stripAntiXssi(text: string): string {
 
 /**
  * Parse a chunked batchexecute response into individual JSON chunks.
- * Format: each chunk starts with a line containing the byte count,
- * followed by the JSON data of that many bytes.
+ * Line-based parser: lines that parse as integers are byte counts (skipped),
+ * lines that parse as JSON arrays are data chunks.
  */
 export function parseChunkedResponse(text: string): unknown[][] {
   const stripped = stripAntiXssi(text);
+  const lines = stripped.split('\n');
   const chunks: unknown[][] = [];
-  let pos = 0;
+  let i = 0;
 
-  while (pos < stripped.length) {
-    // Skip whitespace
-    while (pos < stripped.length && /\s/.test(stripped[pos])) pos++;
-    if (pos >= stripped.length) break;
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    if (!line) {
+      i++;
+      continue;
+    }
 
-    // Read byte count line
-    const newlineIdx = stripped.indexOf('\n', pos);
-    if (newlineIdx === -1) break;
-
-    const byteCountStr = stripped.slice(pos, newlineIdx).trim();
-    const byteCount = parseInt(byteCountStr, 10);
-    if (isNaN(byteCount) || byteCount <= 0) break;
-
-    pos = newlineIdx + 1;
-
-    // Read the JSON chunk (byteCount bytes)
-    const chunkText = stripped.slice(pos, pos + byteCount);
-    pos += byteCount;
-
-    try {
-      const parsed = JSON.parse(chunkText);
-      if (Array.isArray(parsed)) {
-        chunks.push(parsed);
+    // Check if line is a byte count (integer)
+    const byteCount = parseInt(line, 10);
+    if (!isNaN(byteCount) && String(byteCount) === line) {
+      // Next line should be JSON data
+      i++;
+      if (i < lines.length) {
+        try {
+          const data = JSON.parse(lines[i]);
+          if (Array.isArray(data)) {
+            chunks.push(data);
+          }
+        } catch {
+          // Skip malformed JSON
+        }
       }
-    } catch {
-      // Skip malformed chunks
+      i++;
+    } else {
+      // Try parsing line directly as JSON
+      try {
+        const data = JSON.parse(line);
+        if (Array.isArray(data)) {
+          chunks.push(data);
+        }
+      } catch {
+        // Skip non-JSON lines
+      }
+      i++;
     }
   }
 
@@ -64,8 +74,18 @@ export function extractRpcResult(chunks: unknown[][], rpcId: string): unknown {
     for (const envelope of chunk) {
       if (!Array.isArray(envelope)) continue;
 
-      // wrb.fr structure: [["wrb.fr", rpcId, resultJson, ...], ...]
+      // wrb.fr structure: ["wrb.fr", rpcId, resultJson, ...]
       if (envelope[0] === 'wrb.fr' && envelope[1] === rpcId) {
+        // Check for auth error (error code 16 at position 5)
+        if (
+          envelope.length > 6 &&
+          envelope[6] === 'generic' &&
+          Array.isArray(envelope[5]) &&
+          (envelope[5] as number[]).includes(16)
+        ) {
+          throw new AuthError('Authentication rejected by API. Run setup_auth to re-authenticate.');
+        }
+
         const resultJson = envelope[2];
         if (typeof resultJson === 'string') {
           try {
@@ -88,9 +108,15 @@ export function extractRpcResult(chunks: unknown[][], rpcId: string): unknown {
  */
 export function parseRpcResponse(responseText: string, rpcId: string): unknown {
   const chunks = parseChunkedResponse(responseText);
+
   if (chunks.length === 0) {
+    // Log raw response for debugging
+    const preview = responseText.slice(0, 300);
+    logger.error(`Response parser: 0 chunks parsed from ${responseText.length} bytes. Preview: ${preview}`);
     throw new ValidationError('Empty or unparseable response from API');
   }
+
+  logger.info(`Response parser: ${chunks.length} chunk(s) parsed for RPC ${rpcId}`);
   return extractRpcResult(chunks, rpcId);
 }
 
