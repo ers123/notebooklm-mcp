@@ -20,6 +20,7 @@ const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/
 export class AuthHeaders {
   private cookieStore: CookieStore;
   private csrfToken: string | null = null;
+  private sessionId: string | null = null;
   private csrfTokenExpiry: number = 0;
 
   constructor(cookieStore: CookieStore) {
@@ -92,7 +93,14 @@ export class AuthHeaders {
 
     const html = await response.text();
 
-    // Try multiple regex patterns
+    // Extract session ID (FdrFJe) alongside CSRF token
+    const sidMatch = /FdrFJe":"([^"]+)"/.exec(html);
+    if (sidMatch?.[1]) {
+      this.sessionId = sidMatch[1];
+      logger.info('Session ID acquired');
+    }
+
+    // Try multiple regex patterns for CSRF
     for (const pattern of CSRF_PATTERNS) {
       const match = pattern.exec(html);
       if (match?.[1]) {
@@ -119,10 +127,18 @@ export class AuthHeaders {
   }
 
   /**
-   * Invalidate the cached CSRF token.
+   * Get the cached session ID (extracted alongside CSRF token).
+   */
+  getSessionId(): string | null {
+    return this.sessionId;
+  }
+
+  /**
+   * Invalidate the cached CSRF token and session ID.
    */
   invalidateCsrf(): void {
     this.csrfToken = null;
+    this.sessionId = null;
     this.csrfTokenExpiry = 0;
   }
 

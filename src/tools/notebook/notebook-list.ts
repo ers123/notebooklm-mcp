@@ -14,7 +14,7 @@ export function createNotebookListHandler(rpcClient: RpcClient) {
   return withErrorHandling(async (args: Record<string, unknown>): Promise<ToolResponse> => {
     NotebookListSchema.parse(args);
 
-    const result = await rpcClient.callRpc(RPC_IDS.NOTEBOOK_LIST, []);
+    const result = await rpcClient.callRpc(RPC_IDS.NOTEBOOK_LIST, [null, 1, null, [2]]);
 
     const notebooks: NotebookEntry[] = [];
 

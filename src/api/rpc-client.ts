@@ -7,6 +7,9 @@ import { logger } from '../utils/logger.js';
 
 const MAX_RETRIES = 2;
 
+// Build label for NotebookLM frontend — update if Google changes it
+const BUILD_LABEL = 'boq_labs-tailwind-frontend_20260108.06_p0';
+
 export class RpcClient {
   private authHeaders: AuthHeaders;
 
@@ -28,12 +31,11 @@ export class RpcClient {
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
         const csrf = await this.authHeaders.getCsrfToken();
+        const sessionId = this.authHeaders.getSessionId();
         const headers = await this.authHeaders.getHeaders();
 
         const body = this.buildRequestBody(rpcId, params, csrf);
-        const url = sourcePath
-          ? `${BATCHEXECUTE_URL}?source-path=${encodeURIComponent(sourcePath)}`
-          : BATCHEXECUTE_URL;
+        const url = this.buildUrl(rpcId, sourcePath ?? '/', sessionId);
 
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeout ?? RPC_TIMEOUT);
@@ -86,6 +88,23 @@ export class RpcClient {
     }
 
     throw lastError ?? new Error('RPC call failed after retries');
+  }
+
+  /**
+   * Build the batchexecute URL with required query parameters.
+   */
+  private buildUrl(rpcId: string, sourcePath: string, sessionId: string | null): string {
+    const params = new URLSearchParams({
+      'rpcids': rpcId,
+      'source-path': sourcePath,
+      'bl': BUILD_LABEL,
+      'hl': 'en',
+      'rt': 'c',
+    });
+    if (sessionId) {
+      params.set('f.sid', sessionId);
+    }
+    return `${BATCHEXECUTE_URL}?${params.toString()}`;
   }
 
   /**
