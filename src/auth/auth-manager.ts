@@ -20,13 +20,17 @@ export class AuthManager {
     const { context, page } = await launchBrowser();
 
     try {
-      // Navigate to NotebookLM — Google will redirect to sign-in if needed
-      await page.goto(BASE_URL);
+      // Navigate directly to Google sign-in with NotebookLM as continue URL.
+      // This forces the login flow — the user MUST sign in before being
+      // redirected to NotebookLM. Avoids the issue where notebooklm.google.com
+      // loads a public page and waitForURL resolves without any login.
+      const loginUrl = `https://accounts.google.com/ServiceLogin?continue=${encodeURIComponent(BASE_URL)}`;
+      await page.goto(loginUrl);
 
       logger.info('Waiting for user to complete Google sign-in...');
       logger.info('Please sign in to your Google account in the browser window');
 
-      // Wait for successful navigation to NotebookLM (indicates login completed)
+      // Wait for redirect to NotebookLM — only happens AFTER successful Google login
       // Timeout of 5 minutes to give user time to complete login
       await page.waitForURL(/notebooklm\.google\.com/, { timeout: 5 * 60 * 1000 });
 
@@ -39,7 +43,7 @@ export class AuthManager {
 
       // Additional delay for cross-domain cookie propagation
       // Google sets SID/HSID/SAPISID across .google.com during redirect chain
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, 5000));
 
       logger.info('Capturing cookies...');
 
@@ -53,11 +57,16 @@ export class AuthManager {
       const criticalNames = ['SID', 'HSID', 'SSID', 'APISID', 'SAPISID', '__Secure-1PSID', '__Secure-3PSID'];
       const foundCritical = allCookies.filter(c => criticalNames.includes(c.name)).map(c => c.name);
       if (foundCritical.length === 0) {
-        logger.warn('WARNING: No critical auth cookies found. Authentication may fail.');
-        logger.warn(`All cookie names: ${allCookies.map(c => c.name).join(', ')}`);
-      } else {
-        logger.info(`Critical auth cookies found: ${foundCritical.join(', ')}`);
+        logger.error('FAILED: No critical auth cookies captured after login.');
+        logger.error(`All cookie names: ${allCookies.map(c => c.name).join(', ')}`);
+        logger.error(`All cookie domains: ${domains.join(', ')}`);
+        throw new AuthError(
+          'Login appeared to succeed but no session cookies were captured. ' +
+          'Please ensure you fully completed the Google sign-in (not just loaded the page). ' +
+          'Try running setup_auth again.'
+        );
       }
+      logger.info(`Critical auth cookies found: ${foundCritical.join(', ')}`);
 
       // Filter and save
       await this.cookieStore.saveCookies(allCookies);
