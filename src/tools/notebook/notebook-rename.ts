@@ -8,10 +8,11 @@ export function createNotebookRenameHandler(rpcClient: RpcClient) {
   return withErrorHandling(async (args: Record<string, unknown>): Promise<ToolResponse> => {
     const validated = NotebookRenameSchema.parse(args);
 
+    const sourcePath = `/notebook/${validated.notebookId}`;
     await rpcClient.callRpc(RPC_IDS.NOTEBOOK_UPDATE, [
       null,
       [validated.notebookId, validated.title],
-    ]);
+    ], sourcePath);
 
     return toolResponse(
       `Notebook "${validated.notebookId}" renamed to "${validated.title}" successfully.`,

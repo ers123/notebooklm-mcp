@@ -8,7 +8,8 @@ export function createResearchImportHandler(rpcClient: RpcClient) {
   return withErrorHandling(async (args: Record<string, unknown>): Promise<ToolResponse> => {
     const { notebookId, taskId } = ResearchImportSchema.parse(args);
 
-    const result = await rpcClient.callRpc(RPC_IDS.RESEARCH_IMPORT, [null, notebookId, taskId]);
+    const sourcePath = `/notebook/${notebookId}`;
+    const result = await rpcClient.callRpc(RPC_IDS.RESEARCH_IMPORT, [null, notebookId, taskId], sourcePath);
 
     let sourceId = '';
     let sourceTitle = '';

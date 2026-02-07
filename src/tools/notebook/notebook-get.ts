@@ -14,9 +14,10 @@ export function createNotebookGetHandler(rpcClient: RpcClient) {
   return withErrorHandling(async (args: Record<string, unknown>): Promise<ToolResponse> => {
     const validated = NotebookGetSchema.parse(args);
 
-    // Use debug variant to see what rpcIds are in the response
+    // source-path must be the notebook page path for notebook-specific RPCs
+    const sourcePath = `/notebook/${validated.notebookId}`;
     const { result, debug: rpcDebug } = await rpcClient.callRpcWithDebug(
-      RPC_IDS.NOTEBOOK_GET, [null, validated.notebookId]
+      RPC_IDS.NOTEBOOK_GET, [null, validated.notebookId], sourcePath
     );
 
     const debugInfo: Record<string, unknown> = {

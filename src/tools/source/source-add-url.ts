@@ -8,9 +8,11 @@ export function createSourceAddUrlHandler(rpcClient: RpcClient) {
   return withErrorHandling(async (args: Record<string, unknown>): Promise<ToolResponse> => {
     const { notebookId, url } = SourceAddUrlSchema.parse(args);
 
+    const sourcePath = `/notebook/${notebookId}`;
     const result = await rpcClient.callRpc(
       RPC_IDS.SOURCE_ADD,
       [null, notebookId, [[url, SOURCE_TYPES.URL, null, null, null, null, null]]],
+      sourcePath,
     );
 
     // Parse source info from the result

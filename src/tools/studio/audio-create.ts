@@ -18,7 +18,8 @@ export function createAudioCreateHandler(rpcClient: RpcClient) {
       [STUDIO_TYPES.AUDIO, formatCode, lengthCode, language || null, focusPrompt || null],
     ];
 
-    const result = await rpcClient.callRpc(RPC_IDS.STUDIO_CREATE, params);
+    const sourcePath = `/notebook/${notebookId}`;
+    const result = await rpcClient.callRpc(RPC_IDS.STUDIO_CREATE, params, sourcePath);
     const artifactId = Array.isArray(result) ? (result[0] ?? 'unknown') : 'unknown';
 
     return toolJsonResponse({

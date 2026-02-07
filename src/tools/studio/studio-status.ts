@@ -8,7 +8,8 @@ export function createStudioStatusHandler(rpcClient: RpcClient) {
   return withErrorHandling(async (args: Record<string, unknown>): Promise<ToolResponse> => {
     const { notebookId, artifactId } = StudioStatusSchema.parse(args);
 
-    const result = await rpcClient.callRpc(RPC_IDS.STUDIO_STATUS, [null, notebookId, artifactId]);
+    const sourcePath = `/notebook/${notebookId}`;
+    const result = await rpcClient.callRpc(RPC_IDS.STUDIO_STATUS, [null, notebookId, artifactId], sourcePath);
 
     let status = 'unknown';
     let type = 'unknown';

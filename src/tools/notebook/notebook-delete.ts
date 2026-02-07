@@ -15,7 +15,8 @@ export function createNotebookDeleteHandler(rpcClient: RpcClient) {
       );
     }
 
-    await rpcClient.callRpc(RPC_IDS.NOTEBOOK_DELETE, [null, [validated.notebookId]]);
+    const sourcePath = `/notebook/${validated.notebookId}`;
+    await rpcClient.callRpc(RPC_IDS.NOTEBOOK_DELETE, [null, [validated.notebookId]], sourcePath);
 
     return toolResponse(
       `Notebook "${validated.notebookId}" deleted successfully.`,

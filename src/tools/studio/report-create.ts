@@ -17,7 +17,8 @@ export function createReportCreateHandler(rpcClient: RpcClient) {
       [studioTypeCode, null, null, language || null, customPrompt || null],
     ];
 
-    const result = await rpcClient.callRpc(RPC_IDS.STUDIO_CREATE, params);
+    const sourcePath = `/notebook/${notebookId}`;
+    const result = await rpcClient.callRpc(RPC_IDS.STUDIO_CREATE, params, sourcePath);
     const artifactId = Array.isArray(result) ? (result[0] ?? 'unknown') : 'unknown';
 
     return toolJsonResponse({

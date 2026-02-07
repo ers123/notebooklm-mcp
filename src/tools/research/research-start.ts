@@ -12,7 +12,8 @@ export function createResearchStartHandler(rpcClient: RpcClient) {
       ? RPC_IDS.RESEARCH_START_DEEP
       : RPC_IDS.RESEARCH_START_FAST;
 
-    const result = await rpcClient.callRpc(rpcId, [null, notebookId, query]);
+    const sourcePath = `/notebook/${notebookId}`;
+    const result = await rpcClient.callRpc(rpcId, [null, notebookId, query], sourcePath);
 
     let taskId = '';
 

@@ -8,7 +8,8 @@ export function createResearchStatusHandler(rpcClient: RpcClient) {
   return withErrorHandling(async (args: Record<string, unknown>): Promise<ToolResponse> => {
     const { notebookId, taskId } = ResearchStatusSchema.parse(args);
 
-    const result = await rpcClient.callRpc(RPC_IDS.RESEARCH_STATUS, [null, notebookId, taskId]);
+    const sourcePath = `/notebook/${notebookId}`;
+    const result = await rpcClient.callRpc(RPC_IDS.RESEARCH_STATUS, [null, notebookId, taskId], sourcePath);
 
     let status = 'unknown';
     let progress = 0;

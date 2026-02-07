@@ -8,9 +8,11 @@ export function createSourceAddDriveHandler(rpcClient: RpcClient) {
   return withErrorHandling(async (args: Record<string, unknown>): Promise<ToolResponse> => {
     const { notebookId, driveFileId } = SourceAddDriveSchema.parse(args);
 
+    const sourcePath = `/notebook/${notebookId}`;
     const result = await rpcClient.callRpc(
       RPC_IDS.SOURCE_ADD,
       [null, notebookId, [[null, SOURCE_TYPES.DRIVE, driveFileId]]],
+      sourcePath,
     );
 
     // Parse source info from the result

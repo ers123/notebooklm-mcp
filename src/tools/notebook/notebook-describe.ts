@@ -8,7 +8,8 @@ export function createNotebookDescribeHandler(rpcClient: RpcClient) {
   return withErrorHandling(async (args: Record<string, unknown>): Promise<ToolResponse> => {
     const validated = NotebookDescribeSchema.parse(args);
 
-    const result = await rpcClient.callRpc(RPC_IDS.NOTEBOOK_DESCRIBE, [null, validated.notebookId]);
+    const sourcePath = `/notebook/${validated.notebookId}`;
+    const result = await rpcClient.callRpc(RPC_IDS.NOTEBOOK_DESCRIBE, [null, validated.notebookId], sourcePath);
 
     let summary = '';
     let topics: string[] = [];

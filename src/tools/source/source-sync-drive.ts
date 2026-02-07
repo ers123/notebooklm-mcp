@@ -8,9 +8,11 @@ export function createSourceSyncDriveHandler(rpcClient: RpcClient) {
   return withErrorHandling(async (args: Record<string, unknown>): Promise<ToolResponse> => {
     const { notebookId, sourceId } = SourceSyncDriveSchema.parse(args);
 
+    const sourcePath = `/notebook/${notebookId}`;
     const result = await rpcClient.callRpc(
       RPC_IDS.SOURCE_SYNC_DRIVE,
       [null, notebookId, sourceId],
+      sourcePath,
     );
 
     return toolJsonResponse({

@@ -8,9 +8,11 @@ export function createSourceDescribeHandler(rpcClient: RpcClient) {
   return withErrorHandling(async (args: Record<string, unknown>): Promise<ToolResponse> => {
     const { notebookId, sourceId } = SourceDescribeSchema.parse(args);
 
+    const sourcePath = `/notebook/${notebookId}`;
     const result = await rpcClient.callRpc(
       RPC_IDS.SOURCE_DESCRIBE,
       [null, notebookId, sourceId],
+      sourcePath,
     );
 
     // Parse the AI-generated source description from the result

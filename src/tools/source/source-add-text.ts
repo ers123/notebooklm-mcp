@@ -8,9 +8,11 @@ export function createSourceAddTextHandler(rpcClient: RpcClient) {
   return withErrorHandling(async (args: Record<string, unknown>): Promise<ToolResponse> => {
     const { notebookId, title, content } = SourceAddTextSchema.parse(args);
 
+    const sourcePath = `/notebook/${notebookId}`;
     const result = await rpcClient.callRpc(
       RPC_IDS.SOURCE_ADD,
       [null, notebookId, [[null, SOURCE_TYPES.TEXT, null, null, null, title, content]]],
+      sourcePath,
     );
 
     // Parse source info from the result
