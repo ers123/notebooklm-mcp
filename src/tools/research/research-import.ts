@@ -9,7 +9,7 @@ export function createResearchImportHandler(rpcClient: RpcClient) {
     const { notebookId, taskId } = ResearchImportSchema.parse(args);
 
     const sourcePath = `/notebook/${notebookId}`;
-    const result = await rpcClient.callRpc(RPC_IDS.RESEARCH_IMPORT, [null, notebookId, taskId], sourcePath);
+    const result = await rpcClient.callRpc(RPC_IDS.RESEARCH_IMPORT, [null, [1], taskId, notebookId, []], sourcePath);
 
     let sourceId = '';
     let sourceTitle = '';

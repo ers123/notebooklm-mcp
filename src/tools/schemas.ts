@@ -32,8 +32,8 @@ export const NotebookDeleteSchema = z.object({
 
 export const ChatConfigureSchema = z.object({
   notebookId: z.string().describe('ID of the notebook to configure'),
-  goal: z.enum(['default', 'learn', 'create', 'analyze']).optional().describe('AI conversation goal'),
-  responseLength: z.enum(['short', 'medium', 'long']).optional().describe('AI response length preference'),
+  goal: z.enum(['default', 'custom', 'learning_guide']).optional().describe('AI conversation goal'),
+  responseLength: z.enum(['default', 'longer', 'shorter']).optional().describe('AI response length preference'),
   customPrompt: z.string().optional().describe('Custom system prompt for the notebook AI'),
 });
 
@@ -106,7 +106,7 @@ export const ResearchImportSchema = z.object({
 // Studio tools
 export const AudioCreateSchema = z.object({
   notebookId: z.string().describe('ID of the notebook'),
-  format: z.enum(['conversation', 'single_host']).optional().default('conversation').describe('Audio format'),
+  format: z.enum(['deep_dive', 'brief', 'critique', 'debate']).optional().default('deep_dive').describe('Audio format: deep_dive (two-host conversation), brief (overview), critique, debate'),
   length: z.enum(['short', 'medium', 'long']).optional().default('medium').describe('Audio length: short (~5min), medium (~10min), long (~20min)'),
   language: z.string().optional().describe('Language code (e.g., "en", "ko", "ja")'),
   focusPrompt: z.string().optional().describe('Custom focus prompt for the audio content'),
@@ -114,8 +114,8 @@ export const AudioCreateSchema = z.object({
 
 export const VideoCreateSchema = z.object({
   notebookId: z.string().describe('ID of the notebook'),
-  format: z.enum(['conversation', 'single_host']).optional().default('conversation').describe('Audio format for the video'),
-  visualStyle: z.enum(['abstract', 'collage', 'corporate', 'cinematic', 'documentary', 'editorial', 'illustrated', 'modern', 'photographic']).optional().default('modern').describe('Visual style for the video'),
+  format: z.enum(['deep_dive', 'brief']).optional().default('deep_dive').describe('Audio format for the video'),
+  visualStyle: z.enum(['auto_select', 'classic', 'whiteboard', 'kawaii', 'anime', 'watercolor', 'retro_print', 'heritage', 'paper_craft']).optional().default('auto_select').describe('Visual style for the video'),
   language: z.string().optional().describe('Language code'),
   focusPrompt: z.string().optional().describe('Custom focus prompt for the video content'),
 });
@@ -140,7 +140,7 @@ export const QuizCreateSchema = z.object({
 
 export const InfographicCreateSchema = z.object({
   notebookId: z.string().describe('ID of the notebook'),
-  orientation: z.enum(['portrait', 'landscape']).optional().default('portrait').describe('Infographic orientation'),
+  orientation: z.enum(['portrait', 'landscape', 'square']).optional().default('portrait').describe('Infographic orientation'),
   detailLevel: z.enum(['brief', 'standard', 'detailed']).optional().default('standard').describe('Level of detail'),
   language: z.string().optional().describe('Language code'),
   focusPrompt: z.string().optional().describe('Custom focus prompt for the infographic'),
@@ -148,8 +148,8 @@ export const InfographicCreateSchema = z.object({
 
 export const SlideDeckCreateSchema = z.object({
   notebookId: z.string().describe('ID of the notebook'),
-  format: z.enum(['standard', 'detailed']).optional().default('standard').describe('Slide deck format'),
-  length: z.enum(['short', 'medium', 'long']).optional().default('medium').describe('Number of slides: short (~5), medium (~10), long (~15)'),
+  format: z.enum(['detailed_deck', 'presenter_slides']).optional().default('detailed_deck').describe('Slide deck format: detailed_deck (comprehensive) or presenter_slides (concise)'),
+  length: z.enum(['short', 'default']).optional().default('default').describe('Slide deck length: short or default'),
   language: z.string().optional().describe('Language code'),
   focusPrompt: z.string().optional().describe('Custom focus prompt for the slide deck'),
 });
@@ -162,7 +162,7 @@ export const DataTableCreateSchema = z.object({
 
 export const StudioStatusSchema = z.object({
   notebookId: z.string().describe('ID of the notebook'),
-  artifactId: z.string().describe('Studio artifact ID to check status for'),
+  artifactId: z.string().optional().describe('Specific artifact ID to check, or omit to list all artifacts'),
 });
 
 export const StudioDeleteSchema = z.object({

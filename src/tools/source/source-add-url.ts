@@ -1,17 +1,23 @@
 import { withErrorHandling, toolJsonResponse } from '../index.js';
 import { SourceAddUrlSchema } from '../schemas.js';
 import { RpcClient } from '../../api/rpc-client.js';
-import { RPC_IDS, SOURCE_TYPES } from '../../api/constants.js';
+import { RPC_IDS } from '../../api/constants.js';
 import type { ToolResponse } from '../../types.js';
 
 export function createSourceAddUrlHandler(rpcClient: RpcClient) {
   return withErrorHandling(async (args: Record<string, unknown>): Promise<ToolResponse> => {
     const { notebookId, url } = SourceAddUrlSchema.parse(args);
 
+    const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+
+    const sourceEntry = isYouTube
+      ? [null, null, null, null, null, null, null, [url], null, null, 1]
+      : [null, null, [url], null, null, null, null, null, null, null, 1];
+
     const sourcePath = `/notebook/${notebookId}`;
     const result = await rpcClient.callRpc(
       RPC_IDS.SOURCE_ADD,
-      [null, notebookId, [[url, SOURCE_TYPES.URL, null, null, null, null, null]]],
+      [sourceEntry, notebookId, [2]],
       sourcePath,
     );
 

@@ -9,7 +9,7 @@ export function createResearchStatusHandler(rpcClient: RpcClient) {
     const { notebookId, taskId } = ResearchStatusSchema.parse(args);
 
     const sourcePath = `/notebook/${notebookId}`;
-    const result = await rpcClient.callRpc(RPC_IDS.RESEARCH_STATUS, [null, notebookId, taskId], sourcePath);
+    const result = await rpcClient.callRpc(RPC_IDS.RESEARCH_STATUS, [null, null, notebookId], sourcePath);
 
     let status = 'unknown';
     let progress = 0;

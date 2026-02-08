@@ -36,23 +36,21 @@ export const RPC_IDS = {
 // Studio content type codes
 export const STUDIO_TYPES = {
   AUDIO: 1,
-  VIDEO: 15,
-  BRIEFING_DOC: 2,
-  STUDY_GUIDE: 3,
-  FAQ: 4,
-  TIMELINE: 5,
-  FLASHCARDS: 11,
-  QUIZ: 12,
-  INFOGRAPHIC: 16,
-  SLIDE_DECK: 17,
-  DATA_TABLE: 18,
-  BLOG_POST: 19,
+  REPORT: 2,           // Report-type outputs (Briefing Doc, Study Guide, etc.)
+  BRIEFING_DOC: 2,     // Alias for REPORT
+  VIDEO: 3,
+  FLASHCARDS: 4,       // Quiz also uses type 4, differentiated by options
+  INFOGRAPHIC: 7,
+  SLIDE_DECK: 8,
+  DATA_TABLE: 9,
 } as const;
 
 // Audio format codes
 export const AUDIO_FORMATS = {
-  CONVERSATION: 1,    // Two-host conversation (default)
-  SINGLE_HOST: 2,     // Single host narration
+  DEEP_DIVE: 1,       // Two-host deep dive conversation (default)
+  BRIEF: 2,           // Single host brief overview
+  CRITIQUE: 3,        // Critical analysis format
+  DEBATE: 4,          // Debate format
 } as const;
 
 // Audio length codes
@@ -64,15 +62,16 @@ export const AUDIO_LENGTHS = {
 
 // Video visual style codes
 export const VIDEO_STYLES = {
-  ABSTRACT: 1,
-  COLLAGE: 2,
-  CORPORATE: 3,
-  CINEMATIC: 4,
-  DOCUMENTARY: 5,
-  EDITORIAL: 6,
-  ILLUSTRATED: 7,
-  MODERN: 8,
-  PHOTOGRAPHIC: 9,
+  AUTO_SELECT: 1,
+  CUSTOM: 2,
+  CLASSIC: 3,
+  WHITEBOARD: 4,
+  KAWAII: 5,
+  ANIME: 6,
+  WATERCOLOR: 7,
+  RETRO_PRINT: 8,
+  HERITAGE: 9,
+  PAPER_CRAFT: 10,
 } as const;
 
 // Report format types
@@ -99,8 +98,9 @@ export const DIFFICULTY_LEVELS = {
 
 // Infographic orientation
 export const INFOGRAPHIC_ORIENTATIONS = {
-  PORTRAIT: 1,
-  LANDSCAPE: 2,
+  LANDSCAPE: 1,
+  PORTRAIT: 2,
+  SQUARE: 3,
 } as const;
 
 // Detail level
@@ -112,15 +112,14 @@ export const DETAIL_LEVELS = {
 
 // Slide deck format
 export const SLIDE_DECK_FORMATS = {
-  STANDARD: 1,
-  DETAILED: 2,
+  DETAILED_DECK: 1,
+  PRESENTER_SLIDES: 2,
 } as const;
 
 // Slide deck length
 export const SLIDE_DECK_LENGTHS = {
-  SHORT: 1,    // ~5 slides
-  MEDIUM: 2,   // ~10 slides
-  LONG: 3,     // ~15 slides
+  SHORT: 1,
+  DEFAULT: 3,
 } as const;
 
 // Source type codes for source_add
@@ -133,20 +132,91 @@ export const SOURCE_TYPES = {
 
 // Chat goal types
 export const CHAT_GOALS = {
-  DEFAULT: null,
-  LEARN: 1,
-  CREATE: 2,
-  ANALYZE: 3,
+  DEFAULT: 1,
+  CUSTOM: 2,
+  LEARNING_GUIDE: 3,
 } as const;
 
 // Response length types
 export const RESPONSE_LENGTHS = {
-  SHORT: 1,
-  MEDIUM: 2,
-  LONG: 3,
+  DEFAULT: 1,
+  LONGER: 4,
+  SHORTER: 5,
 } as const;
 
 // Helper to map string keys to numeric codes
+// Alias maps: schema-friendly names → constant keys
+const AUDIO_FORMAT_ALIASES: Record<string, number> = {
+  deep_dive: AUDIO_FORMATS.DEEP_DIVE,
+  brief: AUDIO_FORMATS.BRIEF,
+  critique: AUDIO_FORMATS.CRITIQUE,
+  debate: AUDIO_FORMATS.DEBATE,
+  // Legacy aliases
+  conversation: AUDIO_FORMATS.DEEP_DIVE,
+  single_host: AUDIO_FORMATS.BRIEF,
+};
+
+const VIDEO_STYLE_ALIASES: Record<string, number> = {
+  auto_select: VIDEO_STYLES.AUTO_SELECT,
+  auto: VIDEO_STYLES.AUTO_SELECT,
+  custom: VIDEO_STYLES.CUSTOM,
+  classic: VIDEO_STYLES.CLASSIC,
+  whiteboard: VIDEO_STYLES.WHITEBOARD,
+  kawaii: VIDEO_STYLES.KAWAII,
+  anime: VIDEO_STYLES.ANIME,
+  watercolor: VIDEO_STYLES.WATERCOLOR,
+  retro_print: VIDEO_STYLES.RETRO_PRINT,
+  retro: VIDEO_STYLES.RETRO_PRINT,
+  heritage: VIDEO_STYLES.HERITAGE,
+  paper_craft: VIDEO_STYLES.PAPER_CRAFT,
+};
+
+const SLIDE_DECK_FORMAT_ALIASES: Record<string, number> = {
+  detailed_deck: SLIDE_DECK_FORMATS.DETAILED_DECK,
+  presenter_slides: SLIDE_DECK_FORMATS.PRESENTER_SLIDES,
+  // Legacy aliases
+  standard: SLIDE_DECK_FORMATS.DETAILED_DECK,
+  detailed: SLIDE_DECK_FORMATS.DETAILED_DECK,
+  presenter: SLIDE_DECK_FORMATS.PRESENTER_SLIDES,
+};
+
+const SLIDE_DECK_LENGTH_ALIASES: Record<string, number> = {
+  short: SLIDE_DECK_LENGTHS.SHORT,
+  default: SLIDE_DECK_LENGTHS.DEFAULT,
+  // Legacy aliases
+  medium: SLIDE_DECK_LENGTHS.DEFAULT,
+  long: SLIDE_DECK_LENGTHS.DEFAULT,
+};
+
+const CHAT_GOAL_ALIASES: Record<string, number> = {
+  default: CHAT_GOALS.DEFAULT,
+  custom: CHAT_GOALS.CUSTOM,
+  learning_guide: CHAT_GOALS.LEARNING_GUIDE,
+  // Legacy aliases
+  learn: CHAT_GOALS.LEARNING_GUIDE,
+  create: CHAT_GOALS.CUSTOM,
+  analyze: CHAT_GOALS.LEARNING_GUIDE,
+};
+
+const RESPONSE_LENGTH_ALIASES: Record<string, number> = {
+  default: RESPONSE_LENGTHS.DEFAULT,
+  longer: RESPONSE_LENGTHS.LONGER,
+  shorter: RESPONSE_LENGTHS.SHORTER,
+  // Legacy aliases
+  short: RESPONSE_LENGTHS.SHORTER,
+  medium: RESPONSE_LENGTHS.DEFAULT,
+  long: RESPONSE_LENGTHS.LONGER,
+};
+
+function resolveAlias(name: string, aliases: Record<string, number>, label: string): number {
+  const key = name.toLowerCase().replace(/[\s-]/g, '_');
+  const code = aliases[key];
+  if (code === undefined) {
+    throw new Error(`Unknown ${label}: ${name}. Valid: ${Object.keys(aliases).join(', ')}`);
+  }
+  return code;
+}
+
 export class CodeMapper {
   static studioType(name: string): number {
     const key = name.toUpperCase().replace(/[\s-]/g, '_') as keyof typeof STUDIO_TYPES;
@@ -158,12 +228,7 @@ export class CodeMapper {
   }
 
   static audioFormat(name: string): number {
-    const key = name.toUpperCase().replace(/[\s-]/g, '_') as keyof typeof AUDIO_FORMATS;
-    const code = AUDIO_FORMATS[key];
-    if (code === undefined) {
-      throw new Error(`Unknown audio format: ${name}. Valid: ${Object.keys(AUDIO_FORMATS).join(', ')}`);
-    }
-    return code;
+    return resolveAlias(name, AUDIO_FORMAT_ALIASES, 'audio format');
   }
 
   static audioLength(name: string): number {
@@ -176,12 +241,7 @@ export class CodeMapper {
   }
 
   static videoStyle(name: string): number {
-    const key = name.toUpperCase().replace(/[\s-]/g, '_') as keyof typeof VIDEO_STYLES;
-    const code = VIDEO_STYLES[key];
-    if (code === undefined) {
-      throw new Error(`Unknown video style: ${name}. Valid: ${Object.keys(VIDEO_STYLES).join(', ')}`);
-    }
-    return code;
+    return resolveAlias(name, VIDEO_STYLE_ALIASES, 'video style');
   }
 
   static reportFormat(name: string): number {
@@ -221,39 +281,19 @@ export class CodeMapper {
   }
 
   static slideDeckFormat(name: string): number {
-    const key = name.toUpperCase() as keyof typeof SLIDE_DECK_FORMATS;
-    const code = SLIDE_DECK_FORMATS[key];
-    if (code === undefined) {
-      throw new Error(`Unknown slide deck format: ${name}. Valid: ${Object.keys(SLIDE_DECK_FORMATS).join(', ')}`);
-    }
-    return code;
+    return resolveAlias(name, SLIDE_DECK_FORMAT_ALIASES, 'slide deck format');
   }
 
   static slideDeckLength(name: string): number {
-    const key = name.toUpperCase() as keyof typeof SLIDE_DECK_LENGTHS;
-    const code = SLIDE_DECK_LENGTHS[key];
-    if (code === undefined) {
-      throw new Error(`Unknown slide deck length: ${name}. Valid: ${Object.keys(SLIDE_DECK_LENGTHS).join(', ')}`);
-    }
-    return code;
+    return resolveAlias(name, SLIDE_DECK_LENGTH_ALIASES, 'slide deck length');
   }
 
-  static chatGoal(name: string | null): number | null {
-    if (name === null || name === 'default') return null;
-    const key = name.toUpperCase() as keyof typeof CHAT_GOALS;
-    const code = CHAT_GOALS[key];
-    if (code === undefined) {
-      throw new Error(`Unknown chat goal: ${name}. Valid: ${Object.keys(CHAT_GOALS).join(', ')}`);
-    }
-    return code;
+  static chatGoal(name: string | null): number {
+    if (name === null) return CHAT_GOALS.DEFAULT;
+    return resolveAlias(name, CHAT_GOAL_ALIASES, 'chat goal');
   }
 
   static responseLength(name: string): number {
-    const key = name.toUpperCase() as keyof typeof RESPONSE_LENGTHS;
-    const code = RESPONSE_LENGTHS[key];
-    if (code === undefined) {
-      throw new Error(`Unknown response length: ${name}. Valid: ${Object.keys(RESPONSE_LENGTHS).join(', ')}`);
-    }
-    return code;
+    return resolveAlias(name, RESPONSE_LENGTH_ALIASES, 'response length');
   }
 }

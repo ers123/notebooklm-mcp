@@ -8,11 +8,9 @@ export function createSourceGetContentHandler(rpcClient: RpcClient) {
   return withErrorHandling(async (args: Record<string, unknown>): Promise<ToolResponse> => {
     const { notebookId, sourceId } = SourceGetContentSchema.parse(args);
 
-    const sourcePath = `/notebook/${notebookId}`;
     const result = await rpcClient.callRpc(
       RPC_IDS.SOURCE_GET_CONTENT,
-      [null, notebookId, sourceId],
-      sourcePath,
+      [[sourceId], [2], [2]],
     );
 
     // Parse the source original text content from the result

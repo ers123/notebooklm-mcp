@@ -2,7 +2,6 @@ import { withErrorHandling, toolJsonResponse } from '../index.js';
 import { NotebookGetSchema } from '../schemas.js';
 import { RpcClient } from '../../api/rpc-client.js';
 import { RPC_IDS } from '../../api/constants.js';
-import { logger } from '../../utils/logger.js';
 import type { ToolResponse } from '../../types.js';
 
 interface SourceEntry {
@@ -14,18 +13,10 @@ export function createNotebookGetHandler(rpcClient: RpcClient) {
   return withErrorHandling(async (args: Record<string, unknown>): Promise<ToolResponse> => {
     const validated = NotebookGetSchema.parse(args);
 
-    // source-path must be the notebook page path for notebook-specific RPCs
     const sourcePath = `/notebook/${validated.notebookId}`;
-    const { result, debug: rpcDebug } = await rpcClient.callRpcWithDebug(
-      RPC_IDS.NOTEBOOK_GET, [null, validated.notebookId], sourcePath
+    const result = await rpcClient.callRpc(
+      RPC_IDS.NOTEBOOK_GET, [validated.notebookId, null, [2], null, 0], sourcePath
     );
-
-    const debugInfo: Record<string, unknown> = {
-      resultType: result === null ? 'null' : typeof result,
-      isArray: Array.isArray(result),
-      rpcId: RPC_IDS.NOTEBOOK_GET,
-      ...rpcDebug,
-    };
 
     let notebookId = validated.notebookId;
     let title = 'Untitled';
@@ -72,7 +63,6 @@ export function createNotebookGetHandler(rpcClient: RpcClient) {
       title,
       sources,
       sourceCount: sources.length,
-      _debug: debugInfo,
     });
   });
 }

@@ -4,42 +4,55 @@ import { RpcClient } from '../../api/rpc-client.js';
 import { RPC_IDS } from '../../api/constants.js';
 import type { ToolResponse } from '../../types.js';
 
+interface SuggestedTopic {
+  question: string;
+  prompt: string;
+}
+
 export function createNotebookDescribeHandler(rpcClient: RpcClient) {
   return withErrorHandling(async (args: Record<string, unknown>): Promise<ToolResponse> => {
     const validated = NotebookDescribeSchema.parse(args);
 
     const sourcePath = `/notebook/${validated.notebookId}`;
-    const result = await rpcClient.callRpc(RPC_IDS.NOTEBOOK_DESCRIBE, [null, validated.notebookId], sourcePath);
+    const result = await rpcClient.callRpc(
+      RPC_IDS.NOTEBOOK_DESCRIBE, [validated.notebookId, [2]], sourcePath
+    );
 
     let summary = '';
-    let topics: string[] = [];
-    let sourceCount = 0;
+    const topics: SuggestedTopic[] = [];
 
     if (Array.isArray(result)) {
-      summary = typeof result[0] === 'string' ? result[0] : '';
+      // Structure: result = [[ [summary_string], [[[q1,p1],[q2,p2],...]] ]]
+      // The outer result[0] is the notebook info wrapper
+      const info = result[0];
 
-      if (Array.isArray(result[1])) {
-        topics = result[1]
-          .filter((t: unknown) => typeof t === 'string')
-          .map((t: unknown) => String(t));
-      }
+      if (Array.isArray(info)) {
+        // Summary at info[0][0]
+        if (Array.isArray(info[0]) && typeof info[0][0] === 'string') {
+          summary = info[0][0];
+        } else if (typeof info[0] === 'string') {
+          summary = info[0];
+        }
 
-      if (typeof result[2] === 'number') {
-        sourceCount = result[2];
+        // Topics at info[1][0] — array of [question, prompt] pairs
+        if (Array.isArray(info[1])) {
+          const topicsWrapper = info[1];
+          const topicsData = Array.isArray(topicsWrapper[0]) ? topicsWrapper[0] : topicsWrapper;
+          for (const topic of topicsData) {
+            if (Array.isArray(topic) && topic.length >= 2) {
+              topics.push({
+                question: String(topic[0]),
+                prompt: String(topic[1]),
+              });
+            }
+          }
+        }
       }
-    } else if (result && typeof result === 'object') {
-      const obj = result as Record<string, unknown>;
-      summary = typeof obj['summary'] === 'string' ? obj['summary'] : '';
-      topics = Array.isArray(obj['topics'])
-        ? (obj['topics'] as unknown[]).filter((t): t is string => typeof t === 'string')
-        : [];
-      sourceCount = typeof obj['sourceCount'] === 'number' ? obj['sourceCount'] : 0;
     }
 
     return toolJsonResponse({
       summary,
-      topics,
-      sourceCount,
+      suggestedTopics: topics,
     });
   });
 }

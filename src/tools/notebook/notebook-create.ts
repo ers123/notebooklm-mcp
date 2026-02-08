@@ -9,7 +9,7 @@ export function createNotebookCreateHandler(rpcClient: RpcClient) {
   return withErrorHandling(async (args: Record<string, unknown>): Promise<ToolResponse> => {
     const validated = NotebookCreateSchema.parse(args);
 
-    const result = await rpcClient.callRpc(RPC_IDS.NOTEBOOK_CREATE, [null, validated.title]);
+    const result = await rpcClient.callRpc(RPC_IDS.NOTEBOOK_CREATE, [validated.title, null, null, [2], [1, null, null, null, null, null, null, null, null, null, [1]]]);
 
     let notebookId = '';
     let title = validated.title;

@@ -11,21 +11,37 @@ export function createSlideDeckCreateHandler(rpcClient: RpcClient) {
     const formatCode = CodeMapper.slideDeckFormat(format);
     const lengthCode = CodeMapper.slideDeckLength(length);
 
+    // Fetch source IDs from the notebook
+    const sourcePath = `/notebook/${notebookId}`;
+    const notebookData = await rpcClient.callRpc(RPC_IDS.NOTEBOOK_GET, [notebookId, null, [2], null, 0], sourcePath);
+    const sourceIds: string[] = [];
+    if (Array.isArray(notebookData) && Array.isArray(notebookData[0])) {
+      const sourcesArray = notebookData[0][1];
+      if (Array.isArray(sourcesArray)) {
+        for (const source of sourcesArray) {
+          if (Array.isArray(source) && Array.isArray(source[0]) && typeof source[0][0] === 'string') {
+            sourceIds.push(source[0][0]);
+          }
+        }
+      }
+    }
+    const sourcesNested = sourceIds.map(sid => [[sid]]);
+
     const params = [
-      null,
+      [2],
       notebookId,
-      null,
-      [STUDIO_TYPES.SLIDE_DECK, formatCode, lengthCode, language || null, focusPrompt || null],
+      [null, null, 8, sourcesNested, null, null, null, null, null, null, null, null, null, null, [[focusPrompt || null, language || null, formatCode, lengthCode]]],
     ];
 
-    const sourcePath = `/notebook/${notebookId}`;
     const result = await rpcClient.callRpc(RPC_IDS.STUDIO_CREATE, params, sourcePath);
-    const artifactId = Array.isArray(result) ? (result[0] ?? 'unknown') : 'unknown';
+    const artifactData = Array.isArray(result) && Array.isArray(result[0]) ? result[0] : result;
+    const artifactId = Array.isArray(artifactData) && typeof artifactData[0] === 'string' ? artifactData[0] : 'unknown';
+    const statusCode = Array.isArray(artifactData) ? artifactData[4] : undefined;
 
     return toolJsonResponse({
-      artifactId: String(artifactId),
+      artifactId,
       type: 'slide_deck',
-      status: 'generating',
+      status: statusCode === 1 ? 'in_progress' : statusCode === 3 ? 'completed' : 'generating',
     });
   });
 }

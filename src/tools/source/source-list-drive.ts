@@ -12,7 +12,7 @@ export function createSourceListDriveHandler(rpcClient: RpcClient) {
     const sourcePath = `/notebook/${notebookId}`;
     const notebookResult = await rpcClient.callRpc(
       RPC_IDS.NOTEBOOK_GET,
-      [null, notebookId],
+      [notebookId, null, [2], null, 0],
       sourcePath,
     );
 
@@ -53,8 +53,7 @@ export function createSourceListDriveHandler(rpcClient: RpcClient) {
       try {
         const driveResult = await rpcClient.callRpc(
           RPC_IDS.SOURCE_LIST_DRIVE,
-          [null, notebookId, source.id],
-          sourcePath,
+          [null, [source.id], [2]],
         );
 
         // Parse sync status from the drive result

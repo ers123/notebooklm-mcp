@@ -20,16 +20,8 @@ export function createChatConfigureHandler(rpcClient: RpcClient) {
 
     const sourcePath = `/notebook/${validated.notebookId}`;
     await rpcClient.callRpc(RPC_IDS.NOTEBOOK_UPDATE, [
-      null,
-      [
-        validated.notebookId,
-        null,
-        null,
-        null,
-        goalCode,
-        responseLengthCode,
-        customPrompt,
-      ],
+      validated.notebookId,
+      [[null, null, null, null, null, null, null, [goalCode, responseLengthCode, customPrompt]]],
     ], sourcePath);
 
     const appliedSettings: string[] = [];

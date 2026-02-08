@@ -15,8 +15,7 @@ export function createStudioDeleteHandler(rpcClient: RpcClient) {
       );
     }
 
-    const sourcePath = `/notebook/${validated.notebookId}`;
-    await rpcClient.callRpc(RPC_IDS.STUDIO_DELETE, [null, validated.notebookId, [validated.artifactId]], sourcePath);
+    await rpcClient.callRpc(RPC_IDS.STUDIO_DELETE, [[2], validated.artifactId]);
 
     return toolResponse(
       `Studio artifact "${validated.artifactId}" deleted successfully.`,

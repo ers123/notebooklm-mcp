@@ -1,7 +1,7 @@
 import { withErrorHandling, toolJsonResponse } from '../index.js';
 import { SourceAddDriveSchema } from '../schemas.js';
 import { RpcClient } from '../../api/rpc-client.js';
-import { RPC_IDS, SOURCE_TYPES } from '../../api/constants.js';
+import { RPC_IDS } from '../../api/constants.js';
 import type { ToolResponse } from '../../types.js';
 
 export function createSourceAddDriveHandler(rpcClient: RpcClient) {
@@ -11,7 +11,7 @@ export function createSourceAddDriveHandler(rpcClient: RpcClient) {
     const sourcePath = `/notebook/${notebookId}`;
     const result = await rpcClient.callRpc(
       RPC_IDS.SOURCE_ADD,
-      [null, notebookId, [[null, SOURCE_TYPES.DRIVE, driveFileId]]],
+      [[[driveFileId, null, 1, null], null, null, null, null, null, null, null, null, null, 1], notebookId, [2]],
       sourcePath,
     );
 

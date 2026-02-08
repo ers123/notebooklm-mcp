@@ -13,11 +13,9 @@ export function createSourceDeleteHandler(rpcClient: RpcClient) {
       throw new ValidationError('Deletion not confirmed. Set confirm to true to delete the source.');
     }
 
-    const sourcePath = `/notebook/${notebookId}`;
     await rpcClient.callRpc(
       RPC_IDS.SOURCE_DELETE,
-      [null, notebookId, [sourceId]],
-      sourcePath,
+      [[[sourceId]], [2]],
     );
 
     return toolResponse(`Source ${sourceId} deleted from notebook ${notebookId}.`);

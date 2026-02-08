@@ -10,8 +10,8 @@ export function createNotebookRenameHandler(rpcClient: RpcClient) {
 
     const sourcePath = `/notebook/${validated.notebookId}`;
     await rpcClient.callRpc(RPC_IDS.NOTEBOOK_UPDATE, [
-      null,
-      [validated.notebookId, validated.title],
+      validated.notebookId,
+      [[null, null, null, [null, validated.title]]],
     ], sourcePath);
 
     return toolResponse(

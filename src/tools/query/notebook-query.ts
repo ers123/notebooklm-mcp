@@ -92,7 +92,7 @@ export function createNotebookQueryHandler(queryClient: QueryClient, rpcClient: 
     // First, fetch notebook data to get source IDs
     logger.info(`Fetching source IDs for notebook ${notebookId}...`);
     const sourcePath = `/notebook/${notebookId}`;
-    const notebookData = await rpcClient.callRpc(RPC_IDS.NOTEBOOK_GET, [null, notebookId], sourcePath);
+    const notebookData = await rpcClient.callRpc(RPC_IDS.NOTEBOOK_GET, [notebookId, null, [2], null, 0], sourcePath);
     const sourceIds = extractSourceIds(notebookData);
 
     if (sourceIds.length === 0) {
