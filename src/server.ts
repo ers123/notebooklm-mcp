@@ -37,6 +37,9 @@ import {
   DataTableCreateSchema,
   StudioStatusSchema,
   StudioDeleteSchema,
+  MindMapCreateSchema,
+  MindMapListSchema,
+  MindMapDeleteSchema,
 } from './tools/schemas.js';
 
 // Tool handler factories
@@ -72,6 +75,9 @@ import { createSlideDeckCreateHandler } from './tools/studio/slide-deck-create.j
 import { createDataTableCreateHandler } from './tools/studio/data-table-create.js';
 import { createStudioStatusHandler } from './tools/studio/studio-status.js';
 import { createStudioDeleteHandler } from './tools/studio/studio-delete.js';
+import { createMindMapCreateHandler } from './tools/studio/mind-map-create.js';
+import { createMindMapListHandler } from './tools/studio/mind-map-list.js';
+import { createMindMapDeleteHandler } from './tools/studio/mind-map-delete.js';
 import { logger } from './utils/logger.js';
 
 export interface ServerComponents {
@@ -128,6 +134,9 @@ export function createServer(): ServerComponents {
   const dataTableCreate = createDataTableCreateHandler(rpcClient);
   const studioStatus = createStudioStatusHandler(rpcClient);
   const studioDelete = createStudioDeleteHandler(rpcClient);
+  const mindMapCreate = createMindMapCreateHandler(rpcClient);
+  const mindMapList = createMindMapListHandler(rpcClient);
+  const mindMapDelete = createMindMapDeleteHandler(rpcClient);
 
   // === Register tools (32 total) ===
 
@@ -361,7 +370,29 @@ export function createServer(): ServerComponents {
     async (args) => studioDelete(args)
   );
 
-  logger.info('Registered 32 MCP tools');
+  // Mind Map (3) — separate from Studio, uses 2-step generate+save
+  server.tool(
+    'mind_map_create',
+    'Generate a mind map from notebook sources. Synchronous — returns immediately with the result.',
+    MindMapCreateSchema.shape,
+    async (args) => mindMapCreate(args)
+  );
+
+  server.tool(
+    'mind_map_list',
+    'List all mind maps in a notebook.',
+    MindMapListSchema.shape,
+    async (args) => mindMapList(args)
+  );
+
+  server.tool(
+    'mind_map_delete',
+    'Delete a mind map. Requires confirm=true.',
+    MindMapDeleteSchema.shape,
+    async (args) => mindMapDelete(args)
+  );
+
+  logger.info('Registered 35 MCP tools');
 
   return { server, browserLauncher, authManager, rpcClient, queryClient };
 }

@@ -18,7 +18,7 @@ A secure MCP (Model Context Protocol) server for Google NotebookLM. Enables AI a
 | All cookies stored | Only `.google.com` + `notebooklm.google.com` persisted |
 | `exec()` for shell commands | `execFile()` to prevent shell injection |
 
-## Tools (32)
+## Tools (35)
 
 ### Authentication (3)
 | Tool | Description |
@@ -75,6 +75,13 @@ A secure MCP (Model Context Protocol) server for Google NotebookLM. Enables AI a
 | `data_table_create` | Generate data table |
 | `studio_status` | Check generation status of any studio artifact |
 | `studio_delete` | Delete a studio artifact (requires confirm=true) |
+
+### Mind Map (3)
+| Tool | Description |
+|---|---|
+| `mind_map_create` | Generate a mind map from sources (synchronous, returns immediately) |
+| `mind_map_list` | List all mind maps in a notebook |
+| `mind_map_delete` | Delete a mind map (requires confirm=true) |
 
 ## Requirements
 
@@ -172,7 +179,7 @@ Use research_import with notebookId "..." and taskId "..." to add results as sou
 ```
 src/
 ├── index.ts                    # Entry point + stdio transport
-├── server.ts                   # 32 MCP tools registered
+├── server.ts                   # 35 MCP tools registered
 ├── config.ts                   # Constants, API endpoints, timeouts
 ├── types.ts                    # Shared interfaces
 ├── errors.ts                   # Error class hierarchy
@@ -184,12 +191,12 @@ src/
 ├── security/                   # Keychain, AES-256-GCM, file perms, URL validation, sanitizer
 ├── auth/                       # Manual login flow, encrypted cookie store
 ├── browser/                    # Patchright launcher (setup_auth only)
-└── tools/                      # 32 MCP tool handlers
+└── tools/                      # 35 MCP tool handlers
     ├── notebook/               # list, create, get, describe, rename, delete, chat-configure
     ├── source/                 # add-url, add-text, add-drive, describe, get-content, list-drive, sync-drive, delete
     ├── query/                  # notebook-query (AI Q&A with follow-ups)
     ├── research/               # start, status, import
-    ├── studio/                 # audio, video, report, flashcards, quiz, infographic, slide-deck, data-table, status, delete
+    ├── studio/                 # audio, video, report, flashcards, quiz, infographic, slide-deck, data-table, mind-map, status, delete
     └── auth-tools/             # setup, check, clear auth
 ```
 

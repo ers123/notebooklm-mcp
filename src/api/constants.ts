@@ -27,10 +27,11 @@ export const RPC_IDS = {
   STUDIO_STATUS: 'gArtLc',
   STUDIO_DELETE: 'V5N4be',
 
-  // Reserved
-  RESERVED_1: 'yyryJe',
-  RESERVED_2: 'CYK0Xb',
-  RESERVED_3: 'cFji9',
+  // Mind Map (separate from Studio — uses 2-step generate+save)
+  MIND_MAP_GENERATE: 'yyryJe',
+  MIND_MAP_SAVE: 'CYK0Xb',
+  MIND_MAP_LIST: 'cFji9',
+  MIND_MAP_DELETE: 'AH0mwd',
 } as const;
 
 // Studio content type codes

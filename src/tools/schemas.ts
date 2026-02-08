@@ -170,3 +170,19 @@ export const StudioDeleteSchema = z.object({
   artifactId: z.string().describe('Studio artifact ID to delete'),
   confirm: z.boolean().describe('Must be true to confirm deletion'),
 });
+
+// Mind Map tools
+export const MindMapCreateSchema = z.object({
+  notebookId: z.string().describe('ID of the notebook to create a mind map for'),
+  title: z.string().optional().describe('Title for the mind map (auto-generated if omitted)'),
+});
+
+export const MindMapListSchema = z.object({
+  notebookId: z.string().describe('ID of the notebook to list mind maps for'),
+});
+
+export const MindMapDeleteSchema = z.object({
+  notebookId: z.string().describe('ID of the notebook'),
+  mindMapId: z.string().describe('ID of the mind map to delete'),
+  confirm: z.boolean().describe('Must be true to confirm deletion'),
+});

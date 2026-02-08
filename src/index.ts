@@ -46,7 +46,7 @@ async function main(): Promise<void> {
   await server.connect(transport);
 
   logger.info('NotebookLM MCP server v2 started — listening on stdio');
-  logger.info('32 tools registered: setup_auth, check_auth, clear_auth, notebook_list, notebook_create, notebook_get, notebook_describe, notebook_rename, notebook_delete, chat_configure, source_add_url, source_add_text, source_add_drive, source_describe, source_get_content, source_list_drive, source_sync_drive, source_delete, notebook_query, research_start, research_status, research_import, audio_create, video_create, report_create, flashcards_create, quiz_create, infographic_create, slide_deck_create, data_table_create, studio_status, studio_delete');
+  logger.info('35 tools registered: setup_auth, check_auth, clear_auth, notebook_list, notebook_create, notebook_get, notebook_describe, notebook_rename, notebook_delete, chat_configure, source_add_url, source_add_text, source_add_drive, source_describe, source_get_content, source_list_drive, source_sync_drive, source_delete, notebook_query, research_start, research_status, research_import, audio_create, video_create, report_create, flashcards_create, quiz_create, infographic_create, slide_deck_create, data_table_create, studio_status, studio_delete, mind_map_create, mind_map_list, mind_map_delete');
 }
 
 main().catch((error) => {
