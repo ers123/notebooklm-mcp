@@ -214,6 +214,10 @@ Optional:
 
 No native modules. Encryption via Node.js built-in `crypto`. Keychain via `child_process.execFile`.
 
+## Acknowledgments
+
+The NotebookLM internal API structure (RPC IDs, parameter formats, response schemas) was informed by community reverse-engineering efforts, including [wonseokjung/notebooklm-mcp](https://github.com/wonseokjung/notebooklm-mcp). All implementation code is original.
+
 ## License
 
 MIT
