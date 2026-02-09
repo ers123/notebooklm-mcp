@@ -45,18 +45,25 @@ export function createMindMapCreateHandler(rpcClient: RpcClient) {
     logger.info(`mind_map_create: generating from ${sourceIds.length} source(s)`);
     const generateResult = await rpcClient.callRpc(RPC_IDS.MIND_MAP_GENERATE, generateParams, '/');
 
-    // Extract the mind map JSON string from result[0]
+    // Extract the mind map JSON string — may be nested at various depths
     let mindMapJson = '';
-    if (Array.isArray(generateResult) && typeof generateResult[0] === 'string') {
-      mindMapJson = generateResult[0];
-    } else if (typeof generateResult === 'string') {
+    if (typeof generateResult === 'string') {
       mindMapJson = generateResult;
+    } else if (Array.isArray(generateResult)) {
+      if (typeof generateResult[0] === 'string') {
+        mindMapJson = generateResult[0];
+      } else if (Array.isArray(generateResult[0])) {
+        if (typeof generateResult[0][0] === 'string') {
+          mindMapJson = generateResult[0][0];
+        } else if (Array.isArray(generateResult[0][0]) && typeof generateResult[0][0][0] === 'string') {
+          mindMapJson = generateResult[0][0][0];
+        }
+      }
     }
 
     if (!mindMapJson) {
       return toolJsonResponse({
         error: 'Mind map generation returned empty result',
-        rawResultType: generateResult === null ? 'null' : typeof generateResult,
       });
     }
 
